@@ -146,8 +146,9 @@ API_TOKEN=your-secret-token pnpm start
 curl -H 'Authorization: Bearer your-secret-token' http://localhost:3000/search?keywords=test
 ```
 
-浏览器首次访问网页时可使用 `?token=<令牌>`，服务器会写入仅限 HTTP 访问的
-`api_token` Cookie，之后加载页面资源时无需再次在 URL 中附带令牌。请使用足够长且随机的令牌，
+浏览器访问服务时会自动跳转至令牌认证页面；输入正确令牌后，服务器会写入仅限 HTTP 访问的
+`api_token` Cookie 并进入首页，之后加载页面资源时无需再次认证。也可直接使用
+`?token=<令牌>` 完成认证。请使用足够长且随机的令牌，
 并避免在共享设备或会记录 URL 的场景中使用查询参数。
 
 ---

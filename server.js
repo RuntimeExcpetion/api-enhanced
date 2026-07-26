@@ -174,6 +174,8 @@ function createTokenAuth(token) {
   if (!token) return (_, __, next) => next()
 
   return (req, res, next) => {
+    const acceptsHtml =
+      req.method === 'GET' && req.get('accept')?.includes('text/html')
     const authorization = req.get('authorization') || ''
     const bearerToken = authorization.startsWith('Bearer ')
       ? authorization.slice(7)
@@ -193,6 +195,10 @@ function createTokenAuth(token) {
     ]
 
     if (!candidates.some((candidate) => tokensMatch(candidate, token))) {
+      if (acceptsHtml) {
+        res.redirect(`/auth${candidates.some(Boolean) ? '?error=1' : ''}`)
+        return
+      }
       res.set('WWW-Authenticate', 'Bearer realm="NeteaseCloudMusicApiEnhanced"')
       res.status(401).send({ code: 401, msg: 'Unauthorized' })
       return
@@ -204,6 +210,12 @@ function createTokenAuth(token) {
         sameSite: 'strict',
         secure: req.protocol === 'https',
       })
+      if (acceptsHtml) {
+        const url = new URL(req.originalUrl, 'http://localhost')
+        url.searchParams.delete('token')
+        res.redirect(303, `${url.pathname}${url.search}`)
+        return
+      }
     }
     next()
   }
@@ -267,6 +279,10 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
       })
     }
     req.method === 'OPTIONS' ? res.status(204).end() : next()
+  })
+
+  app.get('/auth', (_, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'auth.html'))
   })
 
   app.use(createTokenAuth(token))
