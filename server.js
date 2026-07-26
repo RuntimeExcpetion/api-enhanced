@@ -275,7 +275,6 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
         'Access-Control-Allow-Headers':
           'X-Requested-With,Content-Type,Authorization,X-API-Token',
         'Access-Control-Allow-Methods': 'PUT,POST,GET,DELETE,OPTIONS',
-        'Content-Type': 'application/json; charset=utf-8',
       })
     }
     req.method === 'OPTIONS' ? res.status(204).end() : next()

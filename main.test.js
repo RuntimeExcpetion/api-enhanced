@@ -36,6 +36,7 @@ describe('methods in server.js', () => {
         headers: { Accept: 'text/html' },
       })
       assert.strictEqual(loginPage.url, `${baseUrl}/auth`)
+      assert.match(loginPage.headers.get('content-type'), /^text\/html\b/)
       assert.match(await loginPage.text(), /請輸入管理員提供的訪問令牌/)
 
       const authorizedApi = await fetch(`${baseUrl}/protected`, {
