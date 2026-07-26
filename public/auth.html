@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>令牌認證</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        background: linear-gradient(135deg, #111827, #312e81);
+      }
+      main {
+        width: min(26rem, calc(100% - 3rem));
+        padding: 2.5rem;
+        border: 1px solid rgb(255 255 255 / 15%);
+        border-radius: 1.25rem;
+        background: rgb(17 24 39 / 88%);
+        box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 35%);
+        color: #f9fafb;
+      }
+      h1 { margin: 0 0 0.5rem; font-size: 1.75rem; }
+      p { margin: 0 0 1.75rem; color: #c7d2fe; line-height: 1.6; }
+      label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+      input, button {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 3rem;
+        border-radius: 0.65rem;
+        font: inherit;
+      }
+      input {
+        padding: 0 0.9rem;
+        border: 1px solid #6366f1;
+        background: #111827;
+        color: #fff;
+      }
+      button {
+        margin-top: 1rem;
+        border: 0;
+        background: #4f46e5;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:hover { background: #6366f1; }
+      #error { display: none; margin: 1rem 0 0; color: #fca5a5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>需要令牌</h1>
+      <p>請輸入管理員提供的訪問令牌，認證成功後即可進入首頁。</p>
+      <form action="/" method="get">
+        <label for="token">訪問令牌</label>
+        <input id="token" name="token" type="password" autocomplete="current-password" required autofocus />
+        <button type="submit">驗證並進入首頁</button>
+      </form>
+      <p id="error" role="alert">令牌不正確，請重新輸入。</p>
+    </main>
+    <script>
+      if (new URLSearchParams(location.search).has('error')) {
+        document.querySelector('#error').style.display = 'block'
+      }
+    </script>
+  </body>
+</html>

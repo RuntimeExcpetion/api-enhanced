@@ -11,6 +11,7 @@ const fileUpload = require('express-fileupload')
 const decode = require('safe-decode-uri-component')
 const logger = require('./util/logger.js')
 const { APP_CONF } = require('./util/config.json')
+const crypto = require('crypto')
 
 /**
  * The version check result.
@@ -36,6 +37,7 @@ const VERSION_CHECK_RESULT = {
  *   port?: number,
  *   host?: string,
  *   checkVersion?: boolean,
+ *   token?: string,
  *   moduleDefs?: ModuleDefinition[]
  * }} NcmApiOptions
  */
@@ -157,6 +159,68 @@ function getCorsAllowOrigin(allowOrigins, requestOrigin) {
   return null
 }
 
+function tokensMatch(actualToken, expectedToken) {
+  if (typeof actualToken !== 'string' || !actualToken) return false
+
+  const actual = Buffer.from(actualToken)
+  const expected = Buffer.from(expectedToken)
+  return (
+    actual.length === expected.length &&
+    crypto.timingSafeEqual(actual, expected)
+  )
+}
+
+function createTokenAuth(token) {
+  if (!token) return (_, __, next) => next()
+
+  return (req, res, next) => {
+    const acceptsHtml =
+      req.method === 'GET' && req.get('accept')?.includes('text/html')
+    const authorization = req.get('authorization') || ''
+    const bearerToken = authorization.startsWith('Bearer ')
+      ? authorization.slice(7)
+      : undefined
+    const queryToken =
+      typeof req.query.token === 'string' ? req.query.token : undefined
+    const headerToken = req.get('x-api-token')
+    const cookieToken = req.headers.cookie
+      ?.split(/;\s*/)
+      .find((cookie) => cookie.startsWith('api_token='))
+      ?.slice('api_token='.length)
+    const candidates = [
+      bearerToken,
+      headerToken,
+      queryToken,
+      cookieToken ? decode(cookieToken) : undefined,
+    ]
+
+    if (!candidates.some((candidate) => tokensMatch(candidate, token))) {
+      if (acceptsHtml) {
+        res.redirect(`/auth${candidates.some(Boolean) ? '?error=1' : ''}`)
+        return
+      }
+      res.set('WWW-Authenticate', 'Bearer realm="NeteaseCloudMusicApiEnhanced"')
+      res.status(401).send({ code: 401, msg: 'Unauthorized' })
+      return
+    }
+
+    if (queryToken) {
+      res.cookie('api_token', queryToken, {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: req.protocol === 'https',
+      })
+      if (acceptsHtml) {
+        const url = new URL(req.originalUrl, 'http://localhost')
+        url.searchParams.delete('token')
+        res.redirect(303, `${url.pathname}${url.search}`)
+        return
+      }
+    }
+    next()
+  }
+}
+
 function createConsoleSpinner(message = '启动中') {
   if (!process.stdout.isTTY) {
     return {
@@ -186,16 +250,12 @@ function createConsoleSpinner(message = '启动中') {
  * @param {ModuleDefinition[]} [moduleDefs] Customized module definitions [advanced]
  * @returns {Promise<import("express").Express>} The server instance.
  */
-async function constructServer(moduleDefs) {
+async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
   const app = express()
   const { CORS_ALLOW_ORIGIN } = process.env
   const allowOrigins = parseCorsAllowOrigins(CORS_ALLOW_ORIGIN)
   app.set('trust proxy', true)
 
-  /**
-   * Serving static files
-   */
-  app.use(express.static(path.join(__dirname, 'public')))
   /**
    * CORS & Preflight request
    */
@@ -212,13 +272,25 @@ async function constructServer(moduleDefs) {
           ? { 'Access-Control-Allow-Origin': corsAllowOrigin }
           : {}),
         ...(shouldSetVaryHeader ? { Vary: 'Origin' } : {}),
-        'Access-Control-Allow-Headers': 'X-Requested-With,Content-Type',
+        'Access-Control-Allow-Headers':
+          'X-Requested-With,Content-Type,Authorization,X-API-Token',
         'Access-Control-Allow-Methods': 'PUT,POST,GET,DELETE,OPTIONS',
         'Content-Type': 'application/json; charset=utf-8',
       })
     }
     req.method === 'OPTIONS' ? res.status(204).end() : next()
   })
+
+  app.get('/auth', (_, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'auth.html'))
+  })
+
+  app.use(createTokenAuth(token))
+
+  /**
+   * Serving static files
+   */
+  app.use(express.static(path.join(__dirname, 'public')))
 
   /**
    * Cookie Parser
@@ -430,7 +502,10 @@ async function serveNcmApi(options) {
         )
       }
     })
-  const constructServerSubmission = constructServer(options.moduleDefs)
+  const constructServerSubmission = constructServer(
+    options.moduleDefs,
+    options.token ?? process.env.API_TOKEN,
+  )
 
   const [_, app] = await Promise.all([
     checkVersionSubmission,
@@ -458,4 +533,6 @@ async function serveNcmApi(options) {
 module.exports = {
   serveNcmApi,
   getModulesDefinitions,
+  constructServer,
+  createTokenAuth,
 }

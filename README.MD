@@ -129,6 +129,7 @@ $ sudo docker run -d -p 3000:3000 ncm-api
 | 变量名                        | 默认值                                  | 说明                                                 |
 |----------------------------|--------------------------------------|----------------------------------------------------|
 | **CORS_ALLOW_ORIGIN**      | `*`                                  | 允许跨域请求的域名。可填写单个源，或使用逗号分隔多个源（例如 `https://a.com,https://b.com`）。 |
+| **API_TOKEN**              | 留空（不启用认证）                         | 访问网页和 API 所需的令牌。设置后，所有请求（CORS 预检除外）都必须通过认证。       |
 | **ENABLE_PROXY**           | `false`                              | 是否启用反向代理功能。                                        |
 | **PROXY_URL**              | `https://your-proxy-url.com/?proxy=` | 代理服务地址。仅当 `ENABLE_PROXY=true` 时生效。                 |
 | **ENABLE_RANDOM_CN_IP**    | `false`                              | 是否默认启用随机中国IP。启用后，所有请求默认使用随机中国IP，除非请求参数 `randomCNIP` 显式关闭。 |
@@ -136,6 +137,19 @@ $ sudo docker run -d -p 3000:3000 ncm-api
 | **ENABLE_FLAC**            | `true`                               | 是否启用无损音质（FLAC）。                                    |
 | **SELECT_MAX_BR**          | `false`                              | 启用无损音质时，是否选择最高码率音质。                                |
 | **FOLLOW_SOURCE_ORDER**    | `true`                               | 是否严格按照音源列表顺序进行匹配。                                  |
+
+设置 `API_TOKEN` 后，API 客户端应通过 `Authorization: Bearer <令牌>` 或
+`X-API-Token: <令牌>` 请求头发送令牌。例如：
+
+```bash
+API_TOKEN=your-secret-token pnpm start
+curl -H 'Authorization: Bearer your-secret-token' http://localhost:3000/search?keywords=test
+```
+
+浏览器访问服务时会自动跳转至令牌认证页面；输入正确令牌后，服务器会写入仅限 HTTP 访问的
+`api_token` Cookie 并进入首页，之后加载页面资源时无需再次认证。也可直接使用
+`?token=<令牌>` 完成认证。请使用足够长且随机的令牌，
+并避免在共享设备或会记录 URL 的场景中使用查询参数。
 
 ---
 
