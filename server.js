@@ -396,6 +396,22 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
     }),
   )
 
+  const { createDownloadHandler } = require('./util/player-download')
+  const downloadHandler = createDownloadHandler({
+    resolveSong: (query) =>
+      require('./module/song_download_url_v1')(
+        { ...query, timeout: 15000 },
+        request,
+      ),
+  })
+  app.get('/player/download', (req, res, next) => {
+    if (!token) {
+      res.status(503).json({ code: 503, message: '请先配置站点访问验证。' })
+      return
+    }
+    return downloadHandler(req, res, next)
+  })
+
   /**
    * Cache
    */
