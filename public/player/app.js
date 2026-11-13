@@ -72,7 +72,9 @@
       const album = document.createElement('span'); album.className = 'track-album'; album.textContent = song.album
       const duration = document.createElement('span'); duration.className = 'track-duration'; duration.textContent = formatTime(song.duration)
       const like = document.createElement('button'); like.className = 'icon-button'; like.setAttribute('aria-label', `${favorites.has(song.id) ? '取消喜欢' : '喜欢'} ${song.title}`); like.setAttribute('aria-pressed', favorites.has(song.id)); like.innerHTML = '<svg><use href="#i-heart"/></svg>'; like.addEventListener('click', () => heart(song))
-      row.append(number, main, album, duration, like); container.append(row)
+      const download = document.createElement('button'); download.className = 'icon-button'; download.title = '下载歌曲'; download.setAttribute('aria-label', `下载 ${song.title}`); download.innerHTML = '<svg><use href="#i-download"/></svg>'; download.onclick = () => downloads.open(song)
+      const actions = document.createElement('div'); actions.className = 'track-actions'; actions.append(download, like)
+      row.append(number, main, album, duration, actions); container.append(row)
     })
   }
   function changeView(next) {
@@ -80,11 +82,13 @@
     view = next
     $('my-playlists').classList.toggle('active', next === 'playlists' || next === 'playlist')
     $('playlist-library').hidden = next !== 'playlists'
-    document.querySelector('.music-section').hidden = next === 'playlists'
+    $('capability-center').hidden = next !== 'capabilities'
+    $('capability-open').classList.toggle('active', next === 'capabilities')
+    document.querySelector('.music-section').hidden = next === 'playlists' || next === 'capabilities'
     if (next !== 'playlist') $('load-more-tracks').hidden = true
     document.querySelectorAll('[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === view))
-    const titles = { discover: '今天，想听点什么？', favorites: '把喜欢，留在这里。', queue: '好音乐，接着听。', search: '寻找你的下一首喜欢。', playlists: '你的音乐，都在这里。', playlist: '把喜欢的旋律，听一遍。' }
-    const lists = { discover: '为你发现', favorites: '本地收藏', queue: '播放队列', search: '搜索结果', playlists: '网易云歌单', playlist: '歌单曲目' }
+    const titles = { discover: '今天，想听点什么？', favorites: '把喜欢，留在这里。', queue: '好音乐，接着听。', search: '寻找你的下一首喜欢。', playlists: '你的音乐，都在这里。', playlist: '把喜欢的旋律，听一遍。', capabilities: '音乐的更多可能。' }
+    const lists = { discover: '为你发现', favorites: '本地收藏', queue: '播放队列', search: '搜索结果', playlists: '网易云歌单', playlist: '歌单曲目', capabilities: '全部功能' }
     $('page-title').textContent = titles[view]; $('list-title').firstChild.textContent = lists[view] + ' '
     $('breadcrumb').textContent = lists[view]; SonoraLayout.setView(view)
     $('list-eyebrow').textContent = view === 'discover' ? 'CURATED FOR YOUR EARS' : view === 'favorites' ? 'SOUNDS YOU LOVE' : view === 'queue' ? 'UP NEXT' : 'FIND YOUR SOUND'
@@ -256,7 +260,7 @@
     for (const file of $('files').files) {
       if (!file.type.startsWith('audio/') && !/\.(mp3|flac|wav|m4a|ogg)$/i.test(file.name)) continue
       const url = URL.createObjectURL(file); objectUrls.add(url)
-      queue.push({ id: `local-${Date.now()}-${count++}`, title: file.name.replace(/\.[^.]+$/, ''), artist: '本地音乐', album: '本地导入', duration: 0, cover: '', local: true, url })
+      queue.push({ id: `local-${Date.now()}-${count++}`, title: file.name.replace(/\.[^.]+$/, ''), filename: file.name, artist: '本地音乐', album: '本地导入', duration: 0, cover: '', local: true, url })
     }
     $('files').value = ''; changeView('queue'); toast(count ? `已导入 ${count} 首本地音乐，点击歌曲开始播放。` : '请选择可播放的音频文件。')
   }
@@ -271,9 +275,20 @@
   }
   window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload() })
   $('connection-button').onclick = () => account.open()
-  document.addEventListener('keydown', (event) => { if (event.code === 'Space' && !/INPUT|TEXTAREA|BUTTON|SELECT/.test(document.activeElement.tagName) && !$('music-account').open) { event.preventDefault(); togglePlay() } })
+  document.addEventListener('keydown', (event) => { if (event.code === 'Space' && !/INPUT|TEXTAREA|BUTTON|SELECT/.test(document.activeElement.tagName) && !document.querySelector('dialog[open]')) { event.preventDefault(); togglePlay() } })
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelAnimationFrame(frame); else draw() })
   window.addEventListener('pagehide', (event) => { if (!event.persisted) objectUrls.forEach((url) => URL.revokeObjectURL(url)) })
+  const downloads = SonoraDownloads.mount({ demoUrl: makeDemo, toast })
+  $('download-current').onclick = () => downloads.open(current)
+  const capabilities = SonoraCapabilities.mount({
+    toast, onOpen: () => changeView('capabilities'),
+    onSongs: (songs, title) => {
+      playlistSongs = songs.map(normalizeSong); changeView('playlist')
+      $('list-title').firstChild.textContent = title + ' '
+      $('list-message').textContent = `已从功能中心导入 ${playlistSongs.length} 首歌曲，可点击播放或下载。`
+    },
+    onAccountChange: () => account.restore(),
+  })
   const account = SonoraAccount.mount({
     api, normalizeSong, toast,
     sameOrigin: () => true,

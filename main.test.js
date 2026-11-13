@@ -138,6 +138,10 @@ describe('player login and private library integration', () => {
         '/player/app.js',
         '/player/account.js',
         '/player/layout.js',
+        '/player/download.js',
+        '/player/capabilities.js',
+        '/player/catalog.json',
+        '/player/download?id=1',
         '/player/style.css',
         '/api-console.html',
       ]) {
@@ -167,6 +171,8 @@ describe('player login and private library integration', () => {
       const html = await home.text()
       assert.match(html, /登录并获取歌单/)
       assert.match(html, /扫码登录/)
+      assert.match(html, /全部功能/)
+      assert.match(html, /id="download-current"/)
       assert.doesNotMatch(html, /id="(?:api-token|api-base|settings)"/)
       assert.strictEqual(
         (
@@ -216,6 +222,10 @@ describe('player login and private library integration', () => {
         '/player/app.js',
         '/player/account.js',
         '/player/layout.js',
+        '/player/download.js',
+        '/player/capabilities.js',
+        '/player/catalog.json',
+        '/player/download?id=1',
         '/api-console.html',
       ]) {
         const response = await fetch(base + resource)

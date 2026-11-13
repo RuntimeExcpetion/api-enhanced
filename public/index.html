@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#f6f5f0"><meta name="description" content="拾音 · 发现音乐，跟随声音的形状。支持网易云音乐搜索、同步歌词与实时频谱。">
   <title>拾音 SONORA · 可视化音乐播放器</title>
   <link rel="stylesheet" href="/player/style.css">
-  <script src="/player/core.js" defer></script><script src="/player/account.js" defer></script><script src="/player/layout.js" defer></script><script src="/player/app.js" defer></script>
+  <script src="/player/core.js" defer></script><script src="/player/account.js" defer></script><script src="/player/download.js" defer></script><script src="/player/capabilities.js" defer></script><script src="/player/layout.js" defer></script><script src="/player/app.js" defer></script>
 </head>
 <body class="sidebar-collapsed">
   <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -17,6 +17,8 @@
     <symbol id="i-next" viewBox="0 0 24 24"><path d="m5 5 11 7-11 7Z" fill="currentColor" stroke="none"/><path d="M19 5v14"/></symbol>
     <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4 5 9H2v6h3l6 5Zm4 4c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></symbol>
     <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
     <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 4v16m3-11v6"/></symbol>
@@ -39,6 +41,7 @@
     <span class="nav-label library-label">我的音乐空间</span>
     <button class="nav-item" id="my-playlists" aria-label="我的网易云歌单"><svg><use href="#i-list"/></svg><span class="nav-text">我的网易云歌单</span></button>
     <button class="nav-item" id="import-button"><svg><use href="#i-upload"/></svg><span class="nav-text">导入本地音乐</span></button>
+    <button class="nav-item" id="capability-open" aria-label="全部功能"><svg><use href="#i-grid"/></svg><span class="nav-text">全部功能</span></button>
     <input id="files" type="file" accept="audio/*,.flac,.mp3,.wav,.m4a,.ogg" multiple hidden>
     <div class="sidebar-note"><span class="note-spark">✳</span><p>把世界调成<br>你喜欢的频率。</p><small>YOUR SOUND, YOUR SPACE.</small></div>
     <button class="nav-item logout-button" id="logout-button" aria-label="退出登录"><svg><use href="#i-logout"/></svg><span class="nav-text">退出登录</span></button>
@@ -62,6 +65,15 @@
         <div class="list-heading"><div><span class="eyebrow">YOUR NETEASE MUSIC LIBRARY</span><h2>我的歌单</h2></div><div class="list-actions"><button id="playlist-login" class="text-button">账号</button><button id="daily-button" class="outline-button">每日推荐</button><button id="playlist-refresh" class="outline-button">刷新 ↻</button></div></div>
         <p id="playlist-status" class="list-message" role="status">登录后查看你的网易云歌单。</p><div id="playlist-cards" class="playlist-grid"></div><button id="playlist-more" class="outline-button" hidden>加载更多歌单</button>
       </section>
+      <section id="capability-center" hidden aria-label="全部 API 功能中心">
+        <div class="capability-heading"><div><span class="eyebrow">EXPLORE EVERY POSSIBILITY</span><h2>全部功能</h2><p id="capability-summary" class="list-message">正在读取项目接口目录…</p></div><a class="outline-button" href="/docs/" target="_blank" rel="noopener">查看完整文档 ↗</a></div>
+        <div class="capability-filters"><label class="capability-search"><svg><use href="#i-search"/></svg><input id="capability-search" type="search" placeholder="搜索功能，例如：云盘、评论、MV、下载" aria-label="搜索全部 API 功能"></label><select id="capability-category" aria-label="功能分类"><option value="">全部分类</option></select><span id="capability-count"></span></div>
+        <div class="capability-workbench"><aside class="capability-directory" aria-label="接口列表"><div id="capability-list"></div><button id="capability-more" class="outline-button" hidden>加载更多功能</button></aside>
+          <article class="capability-editor"><header><h3 id="capability-title">选择一项功能</h3><code id="capability-route"></code><p id="capability-description"></p><p id="capability-operation"></p></header>
+          <form id="capability-form"><div id="capability-fields" class="capability-fields"></div><details class="capability-extra"><summary>额外参数（JSON）</summary><p class="list-message">可补充文档中的参数；同名字段以表单填写内容为准。账号登录状态自动携带。</p><textarea id="capability-extra" rows="5" spellcheck="false" aria-label="额外 JSON 参数">{}</textarea></details><details class="capability-doc"><summary>接口完整说明与示例</summary><pre id="capability-documentation"></pre></details><div class="capability-submit"><button id="capability-run" class="primary-button" type="submit">执行功能 ↗</button><button id="capability-cancel" class="outline-button" type="button" hidden>停止等待</button><span id="capability-status" role="status"></span></div></form>
+          <section class="capability-output"><div class="capability-output-heading"><h4>执行结果</h4><div id="capability-result-actions" hidden><button id="capability-copy" class="text-button">复制</button><button id="capability-save" class="text-button">保存结果</button></div></div><div id="capability-preview"></div><pre id="capability-result" tabindex="0">执行后在这里查看结果。</pre></section></article>
+        </div>
+      </section>
       <section class="music-section">
         <div class="list-heading"><div><span class="eyebrow" id="list-eyebrow">CURATED FOR YOUR EARS</span><h2 id="list-title">为你发现 <span id="result-count"></span></h2></div><div class="list-actions"><button id="load-more-tracks" class="outline-button" hidden>加载更多歌曲</button><button id="refresh-button" class="text-button">换一批 ↻</button><button id="play-all" class="outline-button"><svg><use href="#i-play"/></svg>播放全部</button></div></div>
         <p id="list-message" class="list-message" role="status">正在连接音乐服务…</p>
@@ -73,7 +85,7 @@
   <aside class="now-playing" id="details-panel" aria-label="封面、频谱与歌词" hidden>
     <div class="panel-top"><div><span class="panel-eyebrow">NOW PLAYING</span><h2>声音的此刻</h2></div><div class="panel-top-actions"><span class="live-tag" id="audio-state">READY</span><button id="close-details" class="icon-button" aria-label="收起封面与歌词" title="收起封面与歌词"><svg><use href="#i-close"/></svg></button></div></div>
     <div class="cover-art" id="cover-art"><div class="cover-sun"></div><div class="cover-hill hill-back"></div><div class="cover-hill hill-front"></div><span class="cover-type">FIRST<br>LIGHT<span>SONORA SESSIONS</span></span><img id="cover-image" alt="" hidden></div>
-    <div class="song-heading"><div><h2 id="song-title">微光 · First Light</h2><p id="song-artist">SONORA · 原创合成试听</p></div><button id="current-favorite" class="icon-button" aria-label="喜欢当前歌曲" aria-pressed="false"><svg><use href="#i-heart"/></svg></button></div>
+    <div class="song-heading"><div><h2 id="song-title">微光 · First Light</h2><p id="song-artist">SONORA · 原创合成试听</p></div><div class="song-actions"><button id="download-current" class="icon-button" aria-label="下载当前歌曲" title="下载当前歌曲"><svg><use href="#i-download"/></svg></button><button id="current-favorite" class="icon-button" aria-label="喜欢当前歌曲" aria-pressed="false"><svg><use href="#i-heart"/></svg></button></div></div>
     <div class="visualizer-header"><span><i></i> 实时频谱</span><button class="text-button" id="visual-mode">频谱 ↔ 波形</button></div><canvas id="visualizer" width="600" height="180" aria-label="随当前音频变化的频谱"></canvas><p class="visual-hint" id="visual-hint">点击播放，让声音有迹可循</p>
     <div class="lyric-heading"><span>歌词</span><span>LYRICS</span></div><div id="lyrics" class="lyrics" aria-label="同步歌词"><p class="lyric-placeholder">纯音乐，让旋律替你说话。</p></div>
     <div class="headphone-note">◉ &nbsp; 戴上耳机，听见更多细节</div>
@@ -84,6 +96,7 @@
     <div class="player-extras"><button id="mute" class="icon-button" aria-label="静音"><svg><use href="#i-volume"/></svg></button><input id="volume" type="range" min="0" max="1" step="0.01" value="0.7" aria-label="音量"><button id="show-queue" class="icon-button" aria-label="查看播放队列"><svg><use href="#i-list"/></svg></button></div>
   </footer>
   <button id="panel-backdrop" class="panel-backdrop" aria-label="关闭展开的面板" tabindex="-1" hidden></button>
+  <dialog id="download-dialog" aria-labelledby="download-title"><div class="dialog-heading"><h2 id="download-title">下载歌曲</h2><button id="download-close" class="icon-button" aria-label="关闭下载窗口"><svg><use href="#i-close"/></svg></button></div><p id="download-artist"></p><form id="download-form"><label for="download-quality">下载音质</label><select id="download-quality"><option value="standard">标准音质</option><option value="higher">较高音质</option><option value="exhigh">极高音质</option><option value="lossless">无损音质</option><option value="hires">Hi-Res</option><option value="jyeffect">高清环绕声</option><option value="sky">沉浸环绕声</option><option value="dolby">杜比全景声</option><option value="jymaster">超清母带</option></select><p id="download-status" role="status"></p><div class="download-actions"><button id="download-submit" class="primary-button" type="submit"><svg><use href="#i-download"/></svg>开始下载</button><button id="download-cancel" class="outline-button" type="button" hidden>取消下载</button></div></form></dialog>
   <dialog id="music-account" aria-labelledby="music-account-title">
     <div class="dialog-heading"><h2 id="music-account-title">登录网易云音乐</h2><button type="button" id="music-account-close" class="icon-button" aria-label="关闭">×</button></div>
     <p>连接你的网易云账号，听见收藏的好声音。</p>
