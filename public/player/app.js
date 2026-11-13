@@ -86,7 +86,7 @@
     const titles = { discover: '今天，想听点什么？', favorites: '把喜欢，留在这里。', queue: '好音乐，接着听。', search: '寻找你的下一首喜欢。', playlists: '你的音乐，都在这里。', playlist: '把喜欢的旋律，听一遍。' }
     const lists = { discover: '为你发现', favorites: '本地收藏', queue: '播放队列', search: '搜索结果', playlists: '网易云歌单', playlist: '歌单曲目' }
     $('page-title').textContent = titles[view]; $('list-title').firstChild.textContent = lists[view] + ' '
-    $('breadcrumb').textContent = lists[view]; $('hero').classList.toggle('hidden', view !== 'discover')
+    $('breadcrumb').textContent = lists[view]; SonoraLayout.setView(view)
     $('list-eyebrow').textContent = view === 'discover' ? 'CURATED FOR YOUR EARS' : view === 'favorites' ? 'SOUNDS YOU LOVE' : view === 'queue' ? 'UP NEXT' : 'FIND YOUR SOUND'
     $('refresh-button').classList.toggle('hidden', view !== 'discover')
     $('list-message').textContent = view === 'discover' ? discoverMessage : view === 'search' ? '搜索结果来自音乐 API，点击歌曲即可播放。' : view === 'favorites' ? '喜欢的在线歌曲保存在当前浏览器。' : '点击歌曲即可切换；导入本地音频会追加到队列。'
@@ -201,6 +201,7 @@
   }
   function draw() {
     cancelAnimationFrame(frame)
+    if ($('details-panel').hidden) return
     const canvas = $('visualizer'), context = canvas.getContext('2d')
     if (!context) return
     const width = canvas.width, height = canvas.height, playing = analyser && !audio.paused && !audio.ended
@@ -220,6 +221,7 @@
     }
     if (playing && !document.hidden) frame = requestAnimationFrame(draw)
   }
+  document.addEventListener('sonora:layout', draw)
   audio.volume = .7
   audio.addEventListener('play', updatePlayback); audio.addEventListener('pause', updatePlayback); audio.addEventListener('ended', () => { updatePlayback(); step(1, true) })
   audio.addEventListener('error', () => { if (!audio.getAttribute('src')) return; $('audio-state').textContent = 'UNAVAILABLE'; toast('音频加载失败，可能是播放地址已过期、格式不支持或音频跨域受限。请重试或更换歌曲。') })

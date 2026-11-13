@@ -137,6 +137,7 @@ describe('player login and private library integration', () => {
       for (const resource of [
         '/player/app.js',
         '/player/account.js',
+        '/player/layout.js',
         '/player/style.css',
         '/api-console.html',
       ]) {
@@ -214,6 +215,7 @@ describe('player login and private library integration', () => {
         '/%69ndex.html',
         '/player/app.js',
         '/player/account.js',
+        '/player/layout.js',
         '/api-console.html',
       ]) {
         const response = await fetch(base + resource)
