@@ -70,7 +70,8 @@ describe('methods in server.js', () => {
 describe('player login and private library integration', () => {
   async function withServer(token, run) {
     let loginCalls = 0,
-      qrChecks = 0
+      qrChecks = 0,
+      recentCalls = 0
     const app = await main.server.constructServer(
       [
         {
@@ -101,6 +102,17 @@ describe('player login and private library integration', () => {
               cookie: code === 803 ? ['MUSIC_U=qr-music-session; Path=/'] : [],
             }
           },
+        },
+        {
+          route: '/record/recent/song',
+          module: async (query) => ({
+            status: 200,
+            body: {
+              code: 200,
+              calls: ++recentCalls,
+              account: query.cookie.MUSIC_U || null,
+            },
+          }),
         },
         {
           route: '/user/account',
@@ -144,6 +156,7 @@ describe('player login and private library integration', () => {
         '/player/download?id=1',
         '/player/style.css',
         '/api-console.html',
+        '/record/recent/song',
       ]) {
         assert.strictEqual((await fetch(base + resource)).status, 401)
       }
@@ -173,6 +186,7 @@ describe('player login and private library integration', () => {
       assert.match(html, /扫码登录/)
       assert.match(html, /音乐空间/)
       assert.match(html, /id="download-current"/)
+      assert.match(html, /id="recent-open"/)
       assert.doesNotMatch(html, /id="(?:api-token|api-base|settings)"/)
       assert.strictEqual(
         (
@@ -273,6 +287,29 @@ describe('player login and private library integration', () => {
       assert.strictEqual((await anonymous.json()).profile, null)
     })
   })
+  it('always reloads cloud recent records and keeps account cookies separate', async () => {
+    await withServer('test-token', async (base) => {
+      for (const [index, account] of [
+        'first-account',
+        'first-account',
+        'second-account',
+      ].entries()) {
+        const response = await fetch(`${base}/record/recent/song`, {
+          method: 'POST',
+          headers: { Cookie: `api_token=test-token; MUSIC_U=${account}` },
+          body: new URLSearchParams({ limit: '100' }),
+        })
+        assert.strictEqual(response.status, 200)
+        assert.match(response.headers.get('cache-control'), /no-store/)
+        assert.deepStrictEqual(await response.json(), {
+          code: 200,
+          calls: index + 1,
+          account,
+        })
+      }
+    })
+  })
+
   it('polls QR state without caching and uses the outer login cookie without a second token', async () => {
     await withServer('test-token', async (base) => {
       const login = await fetch(`${base}/auth`, {

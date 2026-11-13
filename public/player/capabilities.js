@@ -3,9 +3,9 @@
   const V = typeof module !== 'undefined' && module.exports ? require('./visual-core') : root.SonoraVisual
   function mount({ api, toast, onOpen, onSongs, onPlaySongs, onDownload, onAccountChange, getProfile, openAccount, getCurrent, pauseAudio }) {
     const $=id=>document.getElementById(id)
-    let catalog, currentSection='home', currentRoute='', context={}, run=0, currentList=[], currentListKind='', lastCollection=null, offset=0, modalJob=null, pickJob=null, activeMedia
+    let catalog, currentSection='home', currentRoute='', context={}, run=0, currentList=[], currentListKind='', lastCollection=null, offset=0, modalJob=null, pickJob=null, activeMedia, recentSongs=[], resumeRecent=false
     const likes=new Set()
-    const sections=[['home','音乐广场','✳'],['playlists','我的歌单','▤'],['cloud','我的云盘','☁'],['artists','歌手与专辑','♬'],['videos','视频与 MV','▷'],['radio','播客电台','◉'],['comments','音乐评论','☷'],['messages','消息与关注','✉'],['profile','我的账号','◌'],['services','更多音乐服务','✦']]
+    const sections=[['home','音乐广场','✳'],['recent','最近播放','◷'],['playlists','我的歌单','▤'],['cloud','我的云盘','☁'],['artists','歌手与专辑','♬'],['videos','视频与 MV','▷'],['radio','播客电台','◉'],['comments','音乐评论','☷'],['messages','消息与关注','✉'],['profile','我的账号','◌'],['services','更多音乐服务','✦']]
     const shortcuts=[['排行榜','听见此刻最热门的声音','/toplist'],['热门歌单','从一个主题，发现一段旋律','/top/playlist'],['新歌速递','让新鲜的好声音先到耳边','/personalized/newsong'],['推荐新碟','听一张完整的专辑','/album/newest'],['热门歌手','寻找你喜欢的声音','/top/artists'],['最新 MV','让音乐有画面','/mv/first'],['推荐播客','听见有趣的另一种生活','/dj/recommend'],['每日推荐','为你的口味而来','/recommend/songs']]
     function el(tag,text,className){const x=document.createElement(tag);if(text!=null)x.textContent=text;if(className)x.className=className;return x}
     function button(text,fn,cls='outline-button'){const x=el('button',text,cls);x.type='button';x.onclick=fn;return x}
@@ -26,10 +26,12 @@
     async function ensureCatalog(){if(catalog)return catalog;const response=await fetch('/player/catalog.json',{credentials:'same-origin'});if(response.status===401){location.replace('/auth');throw new Error('登录已失效，请重新验证。')}if(!response.ok)throw new Error('暂时无法载入音乐服务。');catalog=await response.json();return catalog}
     function header(title,subtitle,actions=[]){$('visual-title').textContent=title;$('visual-subtitle').textContent=subtitle||'';$('visual-toolbar').replaceChildren(...actions)}
     function clear(){++run;offset=0;currentRoute='';currentList=[];$('visual-results').replaceChildren();$('visual-more').hidden=true;status('')}
-    function showSection(){onOpen();document.querySelectorAll('[data-music-section]').forEach(b=>b.classList.toggle('active',b.dataset.musicSection===currentSection));$('my-playlists').classList.toggle('active',currentSection==='playlists');$('capability-open').classList.toggle('active',currentSection!=='playlists')}
+    function showSection(){onOpen();document.querySelectorAll('[data-music-section]').forEach(b=>b.classList.toggle('active',b.dataset.musicSection===currentSection));$('my-playlists').classList.toggle('active',currentSection==='playlists');$('recent-open').classList.toggle('active',currentSection==='recent');$('capability-open').classList.toggle('active',!['playlists','recent'].includes(currentSection))}
     async function openSection(section='home'){
+      if(section!=='recent')resumeRecent=false
       currentSection=section;showSection();clear()
       try{
+        if(section==='recent'){await recentPage();return}
         if(section==='home'){header('音乐广场','想听的、想看的，从这里开始。');const grid=el('div',null,'music-hub-grid');for(const[title,desc,route]of shortcuts){const card=button('',()=>browse(route,{},title),'music-hub-card');card.append(el('span',route.includes('mv')?'▷':route.includes('dj')?'◉':'♫','hub-glyph'),el('strong',title),el('small',desc));grid.append(card)}$('visual-results').append(grid);return}
         if(section==='playlists'){header('我的歌单','创建、整理和收藏，把好声音留在一起。',[button('＋ 新建歌单',()=>createPlaylist()),button('调整歌单顺序',()=>reorderPlaylists())]);if(!requireLogin())return;await browse('/user/playlist',{uid:getProfile().userId},'我的歌单',true);return}
         if(section==='cloud'){header('我的云盘','上传音乐、播放与整理你的私人音乐库。',[button('＋ 上传音乐',()=>uploadCloud(),'primary-button')]);if(!requireLogin())return;await browse('/user/cloud',{},'我的云盘',true);return}
@@ -43,6 +45,55 @@
       }catch(error){status(error.message);toast(error.message)}
     }
     const sectionNav=$('visual-navigation');sections.forEach(([id,title,icon])=>{const b=button('',()=>openSection(id),'music-section-tab');b.dataset.musicSection=id;b.append(el('span',icon),el('span',title));sectionNav.append(b)})
+    async function recentPage(){
+      recentSongs=[];currentList=[];currentListKind='/record/recent/song'
+      const playAll=button('播放全部',()=>{if(recentSongs.length)onPlaySongs(recentSongs,0)},'primary-button')
+      const refresh=button('刷新记录',()=>openSection('recent'))
+      playAll.disabled=true
+      header('网易云最近播放','来自当前网易云账号 · 显示最近 100 首歌曲',[playAll,refresh])
+      const container=$('visual-results');container.replaceChildren();$('visual-more').hidden=true
+      const profile=getProfile()
+      if(!profile){resumeRecent=true;status('登录网易云账号后，查看你的最近播放记录。');container.append(button('登录网易云',()=>openAccount(),'primary-button'));openAccount();return}
+      const accountId=String(profile.userId),generation=++run
+      status('正在读取网易云最近播放…');refresh.disabled=true
+      try{
+        const result=await request('/record/recent/song',{limit:100})
+        if(generation!==run||currentSection!=='recent'||String(getProfile()?.userId)!==accountId)return
+        recentSongs=V.recentSongs(result,PlayerCore.normalizeSong);currentList=recentSongs
+        if(!recentSongs.length){container.append(el('div','网易云暂时没有返回最近播放记录。听过一些歌曲后，可以点击刷新。','visual-empty'));status('');return}
+        const list=el('div',null,'recent-song-list'),heading=el('div',null,'recent-song-heading')
+        for(const text of ['#','歌曲 / 歌手','专辑','播放时间','时长','操作'])heading.append(el('span',text))
+        list.append(heading)
+        recentSongs.forEach((song,index)=>{
+          const row=el('article',null,'recent-song-row'),main=button('',()=>onPlaySongs(recentSongs,index),'recent-song-main'),copy=el('div',null,'recent-song-copy')
+          main.setAttribute('aria-label',`再次播放 ${song.title}，${song.artist}`)
+          const time=V.recentTime(song.playedAt)
+          copy.append(el('strong',song.title),el('small',song.artist),el('small',time,'recent-mobile-time'))
+          main.append(image({picUrl:song.cover},'recent-song-art'),copy)
+          const actions=el('div',null,'resource-actions recent-song-actions')
+          const download=button('↓',()=>onDownload(song),'icon-button');download.setAttribute('aria-label',`下载 ${song.title}`);download.title='下载歌曲'
+          const more=button('···',()=>showSong(song),'icon-button');more.setAttribute('aria-label',`更多操作：${song.title}`);more.title='加入歌单、评论等'
+          actions.append(download,more)
+          const album=el('span',song.album,'recent-song-album'),date=el('time',time,'recent-song-time')
+          if(song.playedAt>0)date.setAttribute('datetime',new Date(song.playedAt).toISOString())
+          row.append(el('span',String(index+1).padStart(2,'0'),'recent-song-index'),main,album,date,el('span',PlayerCore.formatTime(song.duration),'recent-song-duration'),actions);list.append(row)
+        })
+        container.append(list);playAll.disabled=false
+        status(`已读取 ${recentSongs.length} 首最近听过的歌曲，点击歌曲即可再次播放。`)
+      }catch(error){
+        if(generation!==run||currentSection!=='recent')return
+        if(error.code===301||error.code===401){resumeRecent=true;status('网易云登录已失效，请重新登录后刷新。');container.append(button('重新登录网易云',()=>openAccount(),'primary-button'))}
+        else{status(error.message||'最近播放暂时读取失败，请稍后刷新。');container.append(button('重新读取',()=>openSection('recent')))}
+      }finally{if(generation===run)refresh.disabled=false}
+    }
+    function accountChanged(){
+      if(currentSection!=='recent')return
+      ++run;recentSongs=[];currentList=[];$('visual-results').replaceChildren()
+      if(!$('capability-center').hidden){
+        if(getProfile())openSection('recent')
+        else{header('网易云最近播放','登录后查看你的网易云听歌记录。');status('请先登录网易云账号。');$('visual-results').append(button('登录网易云',()=>{resumeRecent=true;openAccount()},'primary-button'))}
+      }
+    }
     async function browse(route,params={},title='发现音乐',keepHeader=false,append=false){
       const generation=++run;currentRoute=route;context.request={route,params,title,keepHeader};if(!append){offset=0;currentList=[];if(!keepHeader)header(title,'挑选喜欢的内容，直接打开、播放或收藏。');$('visual-results').replaceChildren()}
       status('正在整理好声音…');$('visual-more').disabled=true
@@ -222,6 +273,7 @@
     async function openFeature(entry){
       const spec=V.spec(entry);if(spec.unavailable)return
       if(/^\/login(?:\/cellphone|\/qr|\/status)?$/.test(spec.route)){openAccount();return}
+      if(spec.route==='/record/recent/song')return openSection('recent')
       if(spec.route==='/likelist')return openLiked()
       if(spec.route.startsWith('/song/download')){onDownload(getCurrent());return}
       if(['/song/url','/song/url/v1','/song/url/v1/302','/lyric','/lyric/new'].includes(spec.route)){document.dispatchEvent(new Event('sonora:show-stage'));return}
@@ -245,8 +297,9 @@
       },spec.write?/删除|移除/.test(spec.title)?'确认移除':'确认保存':'查看内容',/删除|移除/.test(spec.title))
     }
     $('visual-search-form').onsubmit=async event=>{event.preventDefault();const keywords=$('visual-search').value.trim();if(!keywords)return;const types={song:1,playlist:1000,artist:100,album:10,user:1002,video:1004,radio:1009};const type=$('visual-search-kind').value;header(`搜索「${keywords}」`,'点击卡片直接打开或播放。');await browse('/cloudsearch',{keywords,type:types[type]||1},'搜索结果',true)}
+    $('recent-open').onclick=()=>openSection('recent')
     $('capability-open').onclick=()=>openSection('home')
-    return {open:()=>openSection('home'),openSection,showSong,openEntity,openLiked,toggleLike,refreshLikes,request,likes}
+    return {accountChanged,afterLogin:()=>{const section=resumeRecent?'recent':'playlists';resumeRecent=false;return openSection(section)},open:()=>openSection('home'),openSection,showSong,openEntity,openLiked,toggleLike,refreshLikes,request,likes}
   }
   const exported={mount,...V}
   if(typeof module!=='undefined'&&module.exports)module.exports=exported;else root.SonoraCapabilities=exported
