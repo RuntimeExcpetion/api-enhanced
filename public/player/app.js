@@ -11,6 +11,8 @@
   const favorites = new Map((Array.isArray(storedFavorites) ? storedFavorites : []).filter((song) => song && song.id && !song.local).map((song) => [String(song.id), song]))
   let discovered = [demo], searchResults = [], playlistSongs = [], queue = [demo], view = 'discover', current = demo
   let playingIndex = 0, currentLines = [], activeLyric = -1, playRequest = 0, listingRequest = 0, loading = false
+  let cloudLikes = new Set()
+  let centerOpen = false
   let shuffle = false, repeat = 'list', audioContext, analyser, frequency, waveform, source, visualization = 'bars', demoUrl, frame
   const objectUrls = new Set()
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
@@ -46,8 +48,10 @@
     } finally { clearTimeout(timeout) }
   }
   function visibleSongs() { return view === 'favorites' ? [...favorites.values()] : view === 'queue' ? queue : view === 'search' ? searchResults : view === 'playlist' ? playlistSongs : discovered }
-  function updateCounts() { $('favorite-count').textContent = favorites.size; $('queue-count').textContent = queue.length; $('current-favorite').setAttribute('aria-pressed', favorites.has(current.id)) }
-  function heart(song) {
+  function liked(song) { return account?.profile?.() && !song.local && !song.demo ? cloudLikes.has(String(song.id)) : favorites.has(song.id) }
+  function updateCounts() { $('favorite-count').textContent = account?.profile?.() ? cloudLikes.size : favorites.size; $('queue-count').textContent = queue.length; $('current-favorite').setAttribute('aria-pressed', liked(current)); $('stage-like').setAttribute('aria-pressed', liked(current)) }
+  async function heart(song) {
+    if (account.profile() && !song.demo && !song.local) { try { await capabilities.toggleLike(song) } catch (error) { toast(error.message) } return }
     if (song.local) { toast('本地文件仅在本次会话中可用，已保留在播放队列。'); return }
     if (favorites.has(song.id)) favorites.delete(song.id)
     else favorites.set(song.id, song)
@@ -71,13 +75,15 @@
       main.addEventListener('click', () => { if (view !== 'queue') queue = [...songs]; playingIndex = index; playSong(song) })
       const album = document.createElement('span'); album.className = 'track-album'; album.textContent = song.album
       const duration = document.createElement('span'); duration.className = 'track-duration'; duration.textContent = formatTime(song.duration)
-      const like = document.createElement('button'); like.className = 'icon-button'; like.setAttribute('aria-label', `${favorites.has(song.id) ? '取消喜欢' : '喜欢'} ${song.title}`); like.setAttribute('aria-pressed', favorites.has(song.id)); like.innerHTML = '<svg><use href="#i-heart"/></svg>'; like.addEventListener('click', () => heart(song))
+      const like = document.createElement('button'); like.className = 'icon-button'; like.setAttribute('aria-label', `${liked(song) ? '取消喜欢' : '喜欢'} ${song.title}`); like.setAttribute('aria-pressed', liked(song)); like.innerHTML = '<svg><use href="#i-heart"/></svg>'; like.addEventListener('click', () => heart(song))
       const download = document.createElement('button'); download.className = 'icon-button'; download.title = '下载歌曲'; download.setAttribute('aria-label', `下载 ${song.title}`); download.innerHTML = '<svg><use href="#i-download"/></svg>'; download.onclick = () => downloads.open(song)
-      const actions = document.createElement('div'); actions.className = 'track-actions'; actions.append(download, like)
+      const more = document.createElement('button'); more.className = 'icon-button'; more.setAttribute('aria-label', `更多操作：${song.title}`); more.title = '加入歌单、评论等'; more.innerHTML = '<svg><use href="#i-more"/></svg>'; more.onclick = () => capabilities.showSong(song)
+      const actions = document.createElement('div'); actions.className = 'track-actions'; actions.append(download, like, more)
       row.append(number, main, album, duration, actions); container.append(row)
     })
   }
   function changeView(next) {
+    centerOpen = false
     if (next !== 'playlist') account?.cancelPlaylistView()
     view = next
     $('my-playlists').classList.toggle('active', next === 'playlists' || next === 'playlist')
@@ -88,9 +94,9 @@
     if (next !== 'playlist') $('load-more-tracks').hidden = true
     document.querySelectorAll('[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === view))
     const titles = { discover: '今天，想听点什么？', favorites: '把喜欢，留在这里。', queue: '好音乐，接着听。', search: '寻找你的下一首喜欢。', playlists: '你的音乐，都在这里。', playlist: '把喜欢的旋律，听一遍。', capabilities: '音乐的更多可能。' }
-    const lists = { discover: '为你发现', favorites: '本地收藏', queue: '播放队列', search: '搜索结果', playlists: '网易云歌单', playlist: '歌单曲目', capabilities: '全部功能' }
+    const lists = { discover: '为你发现', favorites: '本地收藏', queue: '播放队列', search: '搜索结果', playlists: '网易云歌单', playlist: '歌单曲目', capabilities: '音乐空间' }
     $('page-title').textContent = titles[view]; $('list-title').firstChild.textContent = lists[view] + ' '
-    $('breadcrumb').textContent = lists[view]; SonoraLayout.setView(view)
+    $('breadcrumb').textContent = lists[view]; SonoraLayout.setView(view); renderCenter()
     $('list-eyebrow').textContent = view === 'discover' ? 'CURATED FOR YOUR EARS' : view === 'favorites' ? 'SOUNDS YOU LOVE' : view === 'queue' ? 'UP NEXT' : 'FIND YOUR SOUND'
     $('refresh-button').classList.toggle('hidden', view !== 'discover')
     $('list-message').textContent = view === 'discover' ? discoverMessage : view === 'search' ? '搜索结果来自音乐 API，点击歌曲即可播放。' : view === 'favorites' ? '喜欢的在线歌曲保存在当前浏览器。' : '点击歌曲即可切换；导入本地音频会追加到队列。'
@@ -112,6 +118,7 @@
     } finally { if (request === listingRequest) { $('refresh-button').disabled = false; if (view === 'discover') { $('list-message').textContent = discoverMessage; renderTracks() } } }
   }
   function updateCurrent(song) {
+    stage.updateSong(song); stage.lyrics([], -1)
     $('song-title').textContent = $('mini-title').textContent = song.title
     $('song-artist').textContent = $('mini-artist').textContent = song.artist
     const cover = safeImage(song.cover); $('cover-image').hidden = !cover
@@ -152,14 +159,14 @@
     if (!audioContext) {
       const Context = window.AudioContext || window.webkitAudioContext
       if (!Context) { $('visual-hint').textContent = '当前浏览器不支持实时频谱'; return }
-      audioContext = new Context(); analyser = audioContext.createAnalyser(); analyser.fftSize = 512; analyser.smoothingTimeConstant = .82
+      audioContext = new Context(); analyser = audioContext.createAnalyser(); analyser.fftSize = 8192; analyser.smoothingTimeConstant = .82
       source = audioContext.createMediaElementSource(audio); source.connect(analyser); analyser.connect(audioContext.destination)
       frequency = new Uint8Array(analyser.frequencyBinCount); waveform = new Uint8Array(analyser.fftSize)
     }
     if (audioContext?.state === 'suspended') return audioContext.resume()
   }
   async function playSong(song) {
-    const request = ++playRequest; audio.pause(); audio.removeAttribute('src'); audio.load(); current = song; loading = true; $('play').disabled = true; updateCurrent(song); $('audio-state').textContent = 'LOADING'
+    const request = ++playRequest; audio.pause(); audio.removeAttribute('src'); audio.load(); current = song; centerOpen = true; renderCenter(); loading = true; $('play').disabled = true; updateCurrent(song); $('audio-state').textContent = 'LOADING'
     // Start the audio context in the original click gesture, before network I/O.
     try { await ensureAudioGraph() } catch { toast('实时频谱暂不可用，仍可尝试播放音乐。') }
     if (request !== playRequest) return
@@ -199,31 +206,32 @@
     const playing = !audio.paused && !audio.ended
     $('play').setAttribute('aria-label', playing ? '暂停' : '播放'); $('play').innerHTML = `<svg><use href="#i-${playing ? 'pause' : 'play'}"/></svg>`
     $('vinyl').classList.toggle('playing', playing)
+    stage.playback(playing)
     if (playing) { $('audio-state').textContent = 'PLAYING'; $('visual-hint').textContent = 'WEB AUDIO · 跟随此刻的声音' }
     else if (!loading && $('audio-state').textContent !== 'UNAVAILABLE') { $('audio-state').textContent = 'PAUSED'; $('visual-hint').textContent = '播放音乐，唤醒实时频谱' }
     renderTracks(); draw()
   }
   function draw() {
     cancelAnimationFrame(frame)
-    if ($('details-panel').hidden) return
-    const canvas = $('visualizer'), context = canvas.getContext('2d')
-    if (!context) return
-    const width = canvas.width, height = canvas.height, playing = analyser && !audio.paused && !audio.ended
-    context.clearRect(0, 0, width, height)
+    if ($('details-panel').hidden && $('listening-stage').hidden) return
+    const playing = Boolean(analyser && frequency && waveform && !audio.paused && !audio.ended)
     if (playing) { analyser.getByteFrequencyData(frequency); analyser.getByteTimeDomainData(waveform) }
-    if (visualization === 'wave' && playing) {
-      context.beginPath(); context.strokeStyle = '#7b9653'; context.lineWidth = 3
-      for (let i = 0; i < waveform.length; i++) { const x = i / (waveform.length - 1) * width, y = waveform[i] / 255 * height; if (i) context.lineTo(x, y); else context.moveTo(x, y) }
-      context.stroke()
-    } else {
-      const count = 48, gap = 6, barWidth = (width - gap * (count - 1)) / count
-      for (let i = 0; i < count; i++) {
-        const bin = Math.floor(2 + (i / count) ** 1.8 * (frequency?.length || 128) * .8)
-        const value = playing ? frequency[bin] / 255 : 0, barHeight = Math.max(3, value * (height - 12))
-        context.fillStyle = i % 5 === 0 ? '#a9bd81' : '#7f9b59'; context.fillRect(i * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight)
+    stage.draw({ bins: frequency, waveform, playing, sampleRate: audioContext?.sampleRate || 44100, fftSize: analyser?.fftSize || 8192, time: audio.currentTime })
+    if (!$('details-panel').hidden) {
+      const canvas = $('visualizer'), context = canvas.getContext('2d')
+      if (context) {
+        const width = canvas.width, height = canvas.height; context.clearRect(0, 0, width, height)
+        if (visualization === 'wave' && playing) {
+          context.beginPath(); context.strokeStyle = '#7b9653'; context.lineWidth = 3
+          for (let i = 0; i <= 240; i++) { const x = i / 240 * width, y = waveform[Math.floor(i / 240 * (waveform.length - 1))] / 255 * height; if (i) context.lineTo(x, y); else context.moveTo(x, y) }
+          context.stroke()
+        } else {
+          const count = 48, gap = 6, barWidth = (width - gap * (count - 1)) / count
+          for (let i = 0; i < count; i++) { const bin = Math.floor(2 + (i / count) ** 1.8 * 300), value = playing ? frequency[bin] / 255 : 0, h = Math.max(3, value * (height - 12)); context.fillStyle = i % 5 === 0 ? '#a9bd81' : '#7f9b59'; context.fillRect(i * (barWidth + gap), (height - h) / 2, barWidth, h) }
+        }
       }
     }
-    if (playing && !document.hidden) frame = requestAnimationFrame(draw)
+    if (playing && !document.hidden && !reducedMotion.matches) frame = requestAnimationFrame(draw)
   }
   document.addEventListener('sonora:layout', draw)
   audio.volume = .7
@@ -233,6 +241,7 @@
   audio.addEventListener('timeupdate', () => {
     $('elapsed').textContent = formatTime(audio.currentTime); $('seek').value = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.currentTime / audio.duration * 1000 : 0
     const index = lyricIndex(currentLines, audio.currentTime)
+    stage.lyrics(currentLines, index)
     if (index !== activeLyric) { const children = $('lyrics').children; if (children[activeLyric]) children[activeLyric].classList.remove('current'); if (children[index]) { children[index].classList.add('current'); $('lyrics').scrollTo({ top: children[index].offsetTop - $('lyrics').offsetTop - 43, behavior: reducedMotion.matches ? 'instant' : 'smooth' }) } activeLyric = index }
     if (reducedMotion.matches) draw()
   })
@@ -246,7 +255,7 @@
   $('volume').oninput = () => { audio.volume = Number($('volume').value); audio.muted = false; $('mute').setAttribute('aria-label', '静音'); $('mute').style.opacity = audio.volume === 0 ? '.4' : '1' }
   $('mute').onclick = () => { audio.muted = !audio.muted; $('mute').setAttribute('aria-label', audio.muted ? '取消静音' : '静音'); $('mute').style.opacity = audio.muted ? '.4' : '1' }
   $('visual-mode').onclick = () => { visualization = visualization === 'bars' ? 'wave' : 'bars'; $('visual-mode').textContent = visualization === 'bars' ? '频谱 ↔ 波形' : '波形 ↔ 频谱'; draw() }
-  document.querySelectorAll('[data-view]').forEach((button) => button.onclick = () => changeView(button.dataset.view))
+  document.querySelectorAll('[data-view]').forEach((button) => button.onclick = () => { if (button.dataset.view === 'favorites' && account.profile()) capabilities.openLiked().catch(error => toast(error.message)); else changeView(button.dataset.view) })
   $('show-queue').onclick = () => changeView('queue'); $('refresh-button').onclick = discover
   $('search-form').onsubmit = async (event) => {
     event.preventDefault(); const keywords = $('search').value.trim(); if (!keywords) return
@@ -278,21 +287,34 @@
   document.addEventListener('keydown', (event) => { if (event.code === 'Space' && !/INPUT|TEXTAREA|BUTTON|SELECT/.test(document.activeElement.tagName) && !document.querySelector('dialog[open]')) { event.preventDefault(); togglePlay() } })
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelAnimationFrame(frame); else draw() })
   window.addEventListener('pagehide', (event) => { if (!event.persisted) objectUrls.forEach((url) => URL.revokeObjectURL(url)) })
+  function renderCenter() {
+    const visible = centerOpen && !['capabilities', 'playlists'].includes(view)
+    $('listening-stage').hidden = !visible
+    SonoraLayout.setStage(visible)
+    document.querySelector('.workspace').classList.toggle('is-listening', visible)
+    if (visible) { document.querySelector('.music-section').hidden = true; $('hero').hidden = true }
+    else document.querySelector('.music-section').hidden = ['capabilities', 'playlists'].includes(view)
+  }
+  const stage = SonoraStage.mount({ onPlay: togglePlay, onPrevious: () => step(-1), onNext: () => step(1), onList: () => { centerOpen = false; renderCenter(); SonoraLayout.setView(view) }, safeImage })
+  stage.updateSong(current)
+  document.addEventListener('sonora:show-stage', () => { if (['capabilities', 'playlists'].includes(view)) changeView('discover'); centerOpen = true; renderCenter(); draw() })
   const downloads = SonoraDownloads.mount({ demoUrl: makeDemo, toast })
+  $('details-toggle').onclick = () => document.dispatchEvent(new Event('sonora:show-stage'))
+  $('details-toggle').querySelector('span').textContent = '正在播放'
   $('download-current').onclick = () => downloads.open(current)
   const capabilities = SonoraCapabilities.mount({
-    toast, onOpen: () => changeView('capabilities'),
-    onSongs: (songs, title) => {
-      playlistSongs = songs.map(normalizeSong); changeView('playlist')
-      $('list-title').firstChild.textContent = title + ' '
-      $('list-message').textContent = `已从功能中心导入 ${playlistSongs.length} 首歌曲，可点击播放或下载。`
-    },
+    api, toast, onOpen: () => changeView('capabilities'),
+    onPlaySongs: (songs, index = 0) => { queue = songs.map(song => song.title && typeof song.artist === 'string' ? song : normalizeSong(song)); playingIndex = index; changeView('queue'); playSong(queue[index]) },
+    onSongs: (songs, title) => { playlistSongs = songs.map(normalizeSong); changeView('playlist'); $('list-title').firstChild.textContent = title + ' ' },
+    onDownload: song => downloads.open(song.title ? song : normalizeSong(song)),
     onAccountChange: () => account.restore(),
+    getProfile: () => account.profile(), openAccount: () => account.open(), getCurrent: () => current, pauseAudio: () => audio.pause(),
   })
   const account = SonoraAccount.mount({
     api, normalizeSong, toast,
     sameOrigin: () => true,
-    onLibrary: () => changeView('playlists'),
+    onLibrary: () => account.profile() ? capabilities.openSection('playlists') : changeView('discover'),
+    onAccountChange: () => capabilities.refreshLikes(),
     onSignedOut: () => { playlistSongs = []; if (view === 'playlist') changeView('discover') },
     onSongs: (songs, title, more, total) => {
       playlistSongs = songs; changeView('playlist')
@@ -302,6 +324,12 @@
       $('breadcrumb').textContent = title
     },
   })
+  $('my-playlists').onclick = () => capabilities.openSection('playlists')
+  $('stage-like').onclick = () => heart(current)
+  $('stage-download').onclick = () => downloads.open(current)
+  $('stage-more').onclick = () => capabilities.showSong(current)
+  $('song-more-current').onclick = () => capabilities.showSong(current)
+  document.addEventListener('sonora:likes', event => { cloudLikes = new Set(event.detail || []); renderTracks() })
   $('load-more-tracks').onclick = () => account.loadMoreTracks()
   renderTracks(); draw(); discover(); account.restore()
 })()

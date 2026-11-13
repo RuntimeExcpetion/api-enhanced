@@ -265,3 +265,117 @@ test('partial previews and non-audio upstream responses cannot be saved as full 
     },
   )
 })
+
+test('serverless-friendly downloads resolve a ticket once and stream bounded ranges', async () => {
+  const size = 2 * 1024 * 1024 + 19,
+    bytes = Buffer.alloc(size, 7)
+  let resolves = 0
+  await withDownload(
+    {
+      signingSecret: 'fixed-download-key',
+      resolveSong: async () => {
+        resolves++
+        return {
+          body: {
+            data: {
+              url: 'https://m801.music.126.net/song.flac',
+              type: 'flac',
+              size,
+              level: 'jymaster',
+            },
+          },
+        }
+      },
+      openStream: async (_, signal, range) => {
+        assert.equal(signal.aborted, false)
+        const match = range.match(/^bytes=(\d+)-(\d+)$/),
+          start = Number(match[1]),
+          end = Number(match[2])
+        assert.ok(end - start + 1 <= 1024 * 1024)
+        return {
+          status: 206,
+          data: Readable.from([bytes.subarray(start, end + 1)]),
+          headers: {
+            'content-type': 'audio/flac',
+            'content-range': `bytes ${start}-${end}/${size}`,
+          },
+        }
+      },
+    },
+    async (url) => {
+      const infoResponse = await fetch(
+        url + '?mode=info&id=346085&level=jymaster',
+      )
+      const info = await infoResponse.json()
+      assert.equal(info.rangeSupported, true)
+      assert.equal(info.size, size)
+      assert.equal(info.level, 'jymaster')
+      const chunks = []
+      for (let start = 0; start < size; start += info.chunkSize) {
+        const end = Math.min(start + info.chunkSize - 1, size - 1)
+        const response = await fetch(url, {
+          headers: {
+            'X-Download-Ticket': info.ticket,
+            Range: `bytes=${start}-${end}`,
+          },
+        })
+        assert.equal(response.status, 206)
+        assert.equal(
+          response.headers.get('content-range'),
+          `bytes ${start}-${end}/${size}`,
+        )
+        chunks.push(Buffer.from(await response.arrayBuffer()))
+      }
+      assert.deepEqual(Buffer.concat(chunks), bytes)
+      assert.equal(resolves, 1)
+      assert.equal(
+        (
+          await fetch(url, {
+            headers: {
+              'X-Download-Ticket': info.ticket,
+              Range: `bytes=0-${2 * 1024 * 1024}`,
+            },
+          })
+        ).status,
+        416,
+      )
+    },
+  )
+})
+
+test('expired download tickets are rejected before an upstream file is opened', async () => {
+  let time = 1000,
+    streams = 0
+  await withDownload(
+    {
+      signingSecret: 'expiry-key',
+      now: () => time,
+      resolveSong: async () => ({
+        body: {
+          data: {
+            url: 'https://m801.music.126.net/a.flac',
+            type: 'flac',
+            size: 10,
+          },
+        },
+      }),
+      openStream: async () => {
+        streams++
+        return {
+          status: 206,
+          data: Readable.from([Buffer.from('a')]),
+          headers: { 'content-range': 'bytes 0-0/10' },
+        }
+      },
+    },
+    async (url) => {
+      const info = await (await fetch(url + '?mode=info&id=1')).json()
+      time += 16 * 60 * 1000
+      const response = await fetch(url, {
+        headers: { 'X-Download-Ticket': info.ticket, Range: 'bytes=0-9' },
+      })
+      assert.equal(response.status, 410)
+      assert.equal(streams, 1)
+    },
+  )
+})

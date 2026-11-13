@@ -10,11 +10,11 @@
     const saved = JSON.parse(localStorage.getItem('sonora-layout'))
     for (const key of Object.keys(preferences)) if (typeof saved?.[key] === 'boolean') preferences[key] = saved[key]
   } catch { /* Layout works when browser storage is unavailable. */ }
-  let focused = false, mobileNavigation = false, mobileDetails = false, view = 'discover', returnFocus
+  let focused = false, mobileNavigation = false, mobileDetails = false, view = 'discover', returnFocus, stageActive = false
   function persist() { try { localStorage.setItem('sonora-layout', JSON.stringify(preferences)) } catch { /* optional */ } }
   function render() {
     const navigationOpen = mobile.matches ? mobileNavigation : !focused && !preferences.sidebarCollapsed
-    const detailsOpen = mobile.matches ? mobileDetails : !focused && preferences.detailsOpen
+    const detailsOpen = !stageActive && (mobile.matches ? mobileDetails : !focused && preferences.detailsOpen)
     document.body.classList.toggle('sidebar-collapsed', !navigationOpen)
     document.body.classList.toggle('details-open', detailsOpen && !mobile.matches)
     document.body.classList.toggle('focus-mode', focused && !mobile.matches)
@@ -30,14 +30,15 @@
     $('navigation-toggle').setAttribute('aria-label', navigationOpen ? '收起导航' : '展开导航')
     $('navigation-toggle').title = navigationOpen ? '收起导航' : '展开导航'
     for (const id of ['details-toggle', 'mini-details']) {
-      $(id).setAttribute('aria-expanded', detailsOpen)
-      $(id).setAttribute('aria-label', detailsOpen ? '收起封面与歌词' : '展开封面与歌词')
-      $(id).title = detailsOpen ? '收起封面与歌词' : '展开封面与歌词'
+      $(id).setAttribute('aria-expanded', stageActive)
+      $(id).setAttribute('aria-controls', 'listening-stage')
+      $(id).setAttribute('aria-label', stageActive ? '中央播放舞台已展开' : '打开中央播放舞台')
+      $(id).title = stageActive ? '中央播放舞台已展开' : '打开中央播放舞台'
     }
     $('focus-toggle').setAttribute('aria-pressed', focused)
     $('focus-toggle').querySelector('span').textContent = focused ? '退出专注' : '专注模式'
     $('hero-toggle').hidden = view !== 'discover' || focused
-    const storyOpen = preferences.storyOpen && view === 'discover' && !focused
+    const storyOpen = preferences.storyOpen && view === 'discover' && !focused && !stageActive
     $('hero').hidden = !storyOpen
     $('hero-toggle').setAttribute('aria-expanded', storyOpen)
     $('hero-toggle').firstChild.textContent = storyOpen ? '收起音乐故事 ' : '展开音乐故事 '
@@ -70,7 +71,7 @@
     else { preferences.sidebarCollapsed = true; persist(); render(); $('navigation-toggle').focus() }
   }
   $('details-toggle').onclick = () => toggleDetails()
-  $('mini-details').onclick = () => toggleDetails($('mini-details'))
+  $('mini-details').onclick = () => document.dispatchEvent(new Event('sonora:show-stage'))
   $('close-details').onclick = () => {
     if (mobile.matches) closeDrawers()
     else { preferences.detailsOpen = false; persist(); render(); $('details-toggle').focus() }
@@ -100,6 +101,6 @@
     }
   })
   mobile.addEventListener('change', () => { closeDrawers(false); focused = false; render() })
-  window.SonoraLayout = { setView(next) { view = next; closeDrawers(false); render() } }
+  window.SonoraLayout = { setStage(active) { stageActive = active; if (active) mobileNavigation = mobileDetails = false; render() }, setView(next) { view = next; closeDrawers(false); render() } }
   render()
 })()

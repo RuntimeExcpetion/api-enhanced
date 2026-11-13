@@ -171,7 +171,7 @@ describe('player login and private library integration', () => {
       const html = await home.text()
       assert.match(html, /登录并获取歌单/)
       assert.match(html, /扫码登录/)
-      assert.match(html, /全部功能/)
+      assert.match(html, /音乐空间/)
       assert.match(html, /id="download-current"/)
       assert.doesNotMatch(html, /id="(?:api-token|api-base|settings)"/)
       assert.strictEqual(
