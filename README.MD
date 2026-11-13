@@ -72,6 +72,19 @@ set PORT=4000 && node app.js  # Windows
 - 调用前请务必阅读文档的 [调用前须知](https://neteasecloudmusicapienhanced.js.org/#/?id=%e8%b0%83%e7%94%a8%e5%89%8d%e9%a1%bb%e7%9f%a5) 部分。
 - 推荐将敏感信息（如 cookie）通过部署平台的环境变量进行配置。
 
+## 可视化音乐播放器
+
+启动服务后访问 `/` 使用「拾音 SONORA」播放器，原 API 工具首页保留在 `/api-console.html`，现有接口与鉴权规则保持不变。
+
+- 支持歌曲搜索、新歌推荐、播放队列、浏览器收藏、同步歌词、进度和音量控制。
+- Web Audio 实时频谱 / 波形；支持本地音频导入及内置原创合成试听（无需联网）。
+- 默认 API 为 `https://music.showkerlove.com`；在「连接设置」中可切换服务或选择同站 API。
+- 启用了 `API_TOKEN` 的服务可在连接设置输入令牌，仅保存于当前标签页的 sessionStorage，不写入 URL 或仓库。跨域部署需要服务允许播放器来源（`CORS_ALLOW_ORIGIN`）。
+- 在线歌曲是否可播取决于服务端账号及版权权限；试听片段会显示提示，不绕过权限。音频源需支持 CORS 才能使用实时频谱。
+- 本地文件只在当前页面会话内有效，不上传至服务端；收藏保存在当前浏览器。
+
+播放器逻辑测试：`node --test scripts/player.test.js`。可用空格键播放 / 暂停。
+
 ## 在线体验与文档
 
 - [在线文档](https://neteasecloudmusicapienhanced.js.org/)
