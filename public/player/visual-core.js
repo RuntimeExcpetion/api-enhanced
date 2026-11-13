@@ -96,6 +96,30 @@
   function extractSongs(result){if(!result||typeof result!=='object')return[];const value=result.songs||result.result?.songs||result.data?.songs||result.data?.dailySongs||result.playlist?.tracks||(Array.isArray(result.result)?result.result.map(x=>x.song||x):[]);return Array.isArray(value)?value.filter(x=>x&&x.id!=null&&x.name&&(x.ar||x.artists||x.al||x.album)):[]}
   function redacted(value){return JSON.stringify(value,(key,item)=>/cookie|password|secret|token|authorization|^MUSIC_[UA]$/i.test(key)?'[已隐藏凭证]':item,2)}
   function payload(fields,extraText){let extra;try{extra=JSON.parse(extraText||'{}')}catch{throw new Error('额外参数必须是有效的 JSON 对象。')}if(!extra||typeof extra!=='object'||Array.isArray(extra))throw new Error('额外参数请填写 JSON 对象。');const params={...extra},files=[];for(const{name,value,file}of fields){if(file){if(file.size)files.push({name,file})}else if(value!=='')params[name]=value}return{params,files}}
-  const exported={labels,hidden,spec,unwrap,records,kind,display,picture,resourceValue,extractSongs,redacted,payload}
+  function recentSongs(result,normalizeSong){
+    const list=result?.data?.list||result?.list||[]
+    if(!Array.isArray(list))return[]
+    const unique=new Map()
+    for(const record of list){
+      if(!record||typeof record!=='object')continue
+      const raw=record.data?.song||record.data||record.song||record.resource
+      if(!raw||typeof raw!=='object')continue
+      const id=raw.id??record.resourceId,name=raw.name||record.resourceName
+      if(id==null||!String(id)||!name)continue
+      let playedAt=Number(record.playTime??record.playedAt??record.time??0)
+      if(!Number.isFinite(playedAt))playedAt=Date.parse(record.playTime||record.playedAt||'')||0
+      if(playedAt>0&&playedAt<100000000000)playedAt*=1000
+      if(playedAt<0||playedAt>8640000000000000)playedAt=0
+      const song={...normalizeSong({...raw,id,name}),playedAt}
+      const previous=unique.get(song.id)
+      if(!previous||song.playedAt>previous.playedAt)unique.set(song.id,song)
+    }
+    return [...unique.values()].sort((a,b)=>b.playedAt-a.playedAt)
+  }
+  function recentTime(time,timeZone){
+    if(!Number.isFinite(time)||time<=0)return '未提供播放时间'
+    return new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',...(timeZone?{timeZone}:{})}).format(new Date(time))
+  }
+  const exported={recentSongs,recentTime,labels,hidden,spec,unwrap,records,kind,display,picture,resourceValue,extractSongs,redacted,payload}
   if(typeof module!=='undefined'&&module.exports)module.exports=exported;else root.SonoraVisual=exported
 })(typeof window!=='undefined'?window:globalThis)

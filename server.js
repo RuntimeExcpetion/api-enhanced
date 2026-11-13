@@ -433,6 +433,7 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
     '/likelist',
     '/like',
     '/recommend/songs',
+    '/record/recent/song',
   ])
   app.use((req, res, next) => {
     if (privateRoutes.has(req.path.toLowerCase().replace(/\/+$/, ''))) {

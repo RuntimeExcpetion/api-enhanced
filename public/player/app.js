@@ -83,6 +83,7 @@
     })
   }
   function changeView(next) {
+    $('recent-open').classList.remove('active')
     centerOpen = false
     if (next !== 'playlist') account?.cancelPlaylistView()
     view = next
@@ -313,8 +314,8 @@
   const account = SonoraAccount.mount({
     api, normalizeSong, toast,
     sameOrigin: () => true,
-    onLibrary: () => account.profile() ? capabilities.openSection('playlists') : changeView('discover'),
-    onAccountChange: () => capabilities.refreshLikes(),
+    onLibrary: () => account.profile() ? capabilities.afterLogin() : changeView('discover'),
+    onAccountChange: () => { capabilities.refreshLikes(); capabilities.accountChanged() },
     onSignedOut: () => { playlistSongs = []; if (view === 'playlist') changeView('discover') },
     onSongs: (songs, title, more, total) => {
       playlistSongs = songs; changeView('playlist')
