@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>令牌認證</title>
+    <title>拾音 SONORA · 登录验证</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -14,7 +14,7 @@
         min-height: 100vh;
         margin: 0;
         place-items: center;
-        background: linear-gradient(135deg, #111827, #312e81);
+        background: linear-gradient(135deg, #1e3024, #344a32);
       }
       main {
         width: min(26rem, calc(100% - 3rem));
@@ -26,7 +26,7 @@
         color: #f9fafb;
       }
       h1 { margin: 0 0 0.5rem; font-size: 1.75rem; }
-      p { margin: 0 0 1.75rem; color: #c7d2fe; line-height: 1.6; }
+      p { margin: 0 0 1.75rem; color: #cfdbbf; line-height: 1.6; }
       label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
       input, button {
         box-sizing: border-box;
@@ -37,30 +37,30 @@
       }
       input {
         padding: 0 0.9rem;
-        border: 1px solid #6366f1;
-        background: #111827;
+        border: 1px solid #8da771;
+        background: #1e3024;
         color: #fff;
       }
       button {
         margin-top: 1rem;
         border: 0;
-        background: #4f46e5;
+        background: #69884c;
         color: #fff;
         font-weight: 700;
         cursor: pointer;
       }
-      button:hover { background: #6366f1; }
+      button:hover { background: #8da771; }
       #error { display: none; margin: 1rem 0 0; color: #fca5a5; }
     </style>
   </head>
   <body>
     <main>
-      <h1>需要令牌</h1>
-      <p>請輸入管理員提供的訪問令牌，認證成功後即可進入首頁。</p>
-      <form action="/" method="get">
+      <h1>登录拾音 SONORA</h1>
+      <p>請輸入管理員提供的訪問令牌，認證成功後即可進入音樂播放器。</p>
+      <form action="/auth" method="post">
         <label for="token">訪問令牌</label>
         <input id="token" name="token" type="password" autocomplete="current-password" required autofocus />
-        <button type="submit">驗證並進入首頁</button>
+        <button type="submit">驗證並進入播放器</button>
       </form>
       <p id="error" role="alert">令牌不正確，請重新輸入。</p>
     </main>

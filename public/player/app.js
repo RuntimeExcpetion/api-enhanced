@@ -7,13 +7,13 @@
   const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* Private browsing can disable storage. */ } }
   const demo = { id: 'sonora-demo', title: '微光 · First Light', artist: 'SONORA · 原创合成试听', album: 'SONORA Sessions / 001', duration: 16, cover: '', demo: true }
   let audio = $('audio')
-  let apiBase = read('sonora-api', 'https://music.showkerlove.com')
-  if (typeof apiBase !== 'string') apiBase = 'https://music.showkerlove.com'
+  let apiBase = read('sonora-api', '')
+  if (typeof apiBase !== 'string') apiBase = ''
   let token = ''
   try { token = sessionStorage.getItem('sonora-token') || '' } catch { /* optional */ }
   const storedFavorites = read('sonora-favorites', [])
   const favorites = new Map((Array.isArray(storedFavorites) ? storedFavorites : []).filter((song) => song && song.id && !song.local).map((song) => [String(song.id), song]))
-  let discovered = [demo], searchResults = [], queue = [demo], view = 'discover', current = demo
+  let discovered = [demo], searchResults = [], playlistSongs = [], queue = [demo], view = 'discover', current = demo
   let playingIndex = 0, currentLines = [], activeLyric = -1, playRequest = 0, listingRequest = 0, loading = false
   let shuffle = false, repeat = 'list', audioContext, analyser, frequency, waveform, source, visualization = 'bars', demoUrl, frame
   const objectUrls = new Set()
@@ -25,22 +25,34 @@
     if (error.message === 'Failed to fetch') return '无法连接音乐服务，请检查服务地址、网络或 CORS 设置。'
     return error.message || '请求失败，请稍后重试。'
   }
-  async function api(path, params = {}) {
+  async function api(path, params = {}, options = {}) {
     const base = apiBase || location.origin
     const url = new URL(base.replace(/\/$/, '') + path)
-    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value))
+    const method = options.method || 'GET'
+    if (method === 'GET') Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value))
+    if (options.private) url.searchParams.set('timestamp', Date.now())
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000)
     try {
-      const response = await fetch(url, { signal: controller.signal, headers: token ? { Authorization: `Bearer ${token}` } : {}, credentials: new URL(base).origin === location.origin ? 'same-origin' : 'omit' })
-      if (response.status === 401) throw new Error('服务需要访问令牌，请在连接设置中填写。')
-      if (!response.ok) throw new Error(`音乐服务返回 ${response.status}，请稍后重试。`)
-      const result = await response.json()
-      if (result.code && result.code !== 200) throw new Error(result.message || result.msg || `接口返回 ${result.code}`)
+      const response = await fetch(url, { signal: controller.signal, method, body: method === 'POST' ? JSON.stringify(params) : undefined, cache: options.private ? 'no-store' : 'default', headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}) }, credentials: new URL(base).origin === location.origin ? 'same-origin' : 'omit' })
+      if (response.status === 401 && response.headers.get('WWW-Authenticate')?.includes('NeteaseCloudMusicApiEnhanced')) {
+        if (new URL(base).origin === location.origin) {
+          location.replace('/auth')
+          throw new Error('登录已失效，请重新验证。')
+        }
+        throw new Error('远程服务需要访问令牌，请在连接设置中填写。')
+      }
+      let result
+      try { result = await response.json() } catch { throw new Error(`音乐服务返回了无法识别的响应（${response.status}）。`) }
+      if (!response.ok || (result.code && result.code !== 200)) {
+        const error = new Error(result.message || result.msg || `接口返回 ${result.code}`)
+        error.code = result.code || response.status
+        throw error
+      }
       $('connection-dot').classList.add('online')
       return result
     } finally { clearTimeout(timeout) }
   }
-  function visibleSongs() { return view === 'favorites' ? [...favorites.values()] : view === 'queue' ? queue : view === 'search' ? searchResults : discovered }
+  function visibleSongs() { return view === 'favorites' ? [...favorites.values()] : view === 'queue' ? queue : view === 'search' ? searchResults : view === 'playlist' ? playlistSongs : discovered }
   function updateCounts() { $('favorite-count').textContent = favorites.size; $('queue-count').textContent = queue.length; $('current-favorite').setAttribute('aria-pressed', favorites.has(current.id)) }
   function heart(song) {
     if (song.local) { toast('本地文件仅在本次会话中可用，已保留在播放队列。'); return }
@@ -71,10 +83,15 @@
     })
   }
   function changeView(next) {
+    if (next !== 'playlist') account?.cancelPlaylistView()
     view = next
+    $('my-playlists').classList.toggle('active', next === 'playlists' || next === 'playlist')
+    $('playlist-library').hidden = next !== 'playlists'
+    document.querySelector('.music-section').hidden = next === 'playlists'
+    if (next !== 'playlist') $('load-more-tracks').hidden = true
     document.querySelectorAll('[data-view]').forEach((button) => button.classList.toggle('active', button.dataset.view === view))
-    const titles = { discover: '今天，想听点什么？', favorites: '把喜欢，留在这里。', queue: '好音乐，接着听。', search: '寻找你的下一首喜欢。' }
-    const lists = { discover: '为你发现', favorites: '我的喜欢', queue: '播放队列', search: '搜索结果' }
+    const titles = { discover: '今天，想听点什么？', favorites: '把喜欢，留在这里。', queue: '好音乐，接着听。', search: '寻找你的下一首喜欢。', playlists: '你的音乐，都在这里。', playlist: '把喜欢的旋律，听一遍。' }
+    const lists = { discover: '为你发现', favorites: '本地收藏', queue: '播放队列', search: '搜索结果', playlists: '网易云歌单', playlist: '歌单曲目' }
     $('page-title').textContent = titles[view]; $('list-title').firstChild.textContent = lists[view] + ' '
     $('breadcrumb').textContent = lists[view]; $('hero').classList.toggle('hidden', view !== 'discover')
     $('list-eyebrow').textContent = view === 'discover' ? 'CURATED FOR YOUR EARS' : view === 'favorites' ? 'SOUNDS YOU LOVE' : view === 'queue' ? 'UP NEXT' : 'FIND YOUR SOUND'
@@ -249,7 +266,20 @@
     $('files').value = ''; changeView('queue'); toast(count ? `已导入 ${count} 首本地音乐，点击歌曲开始播放。` : '请选择可播放的音频文件。')
   }
   function openSettings() { $('api-base').value = apiBase; $('same-origin').checked = !apiBase; $('api-base').disabled = !apiBase; $('api-token').value = token; $('settings-status').textContent = ''; $('settings').showModal() }
-  $('settings-button').onclick = $('connection-button').onclick = openSettings
+  $('logout-button').onclick = async () => {
+    $('logout-button').disabled = true
+    try {
+      const response = await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
+      if (!response.ok) throw new Error('退出失败，请稍后重试。')
+      ++playRequest; audio.pause()
+      try { sessionStorage.removeItem('sonora-token') } catch { /* optional */ }
+      location.replace('/auth')
+    } catch (error) { toast(apiError(error)); $('logout-button').disabled = false }
+  }
+  window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload() })
+  $('settings-button').onclick = openSettings
+  $('connection-button').onclick = () => account.open()
+  $('account-settings').onclick = () => { $('music-account').close(); openSettings() }
   $('close-settings').onclick = () => $('settings').close()
   $('same-origin').onchange = () => { $('api-base').disabled = $('same-origin').checked }
   $('settings-form').onsubmit = (event) => {
@@ -260,10 +290,24 @@
     }
     ++listingRequest; ++playRequest; loading = false; $('play').disabled = false
     apiBase = nextBase; token = $('api-token').value.trim(); save('sonora-api', apiBase); try { if (token) sessionStorage.setItem('sonora-token', token); else sessionStorage.removeItem('sonora-token') } catch { /* optional */ }
-    $('connection-dot').classList.remove('online'); $('settings').close(); changeView('discover'); discover()
+    $('connection-dot').classList.remove('online'); $('settings').close(); account.reset(); changeView('discover'); discover(); account.restore()
   }
   document.addEventListener('keydown', (event) => { if (event.code === 'Space' && !/INPUT|TEXTAREA|BUTTON|SELECT/.test(document.activeElement.tagName) && !$('settings').open) { event.preventDefault(); togglePlay() } })
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelAnimationFrame(frame); else draw() })
   window.addEventListener('pagehide', (event) => { if (!event.persisted) objectUrls.forEach((url) => URL.revokeObjectURL(url)) })
-  renderTracks(); draw(); discover()
+  const account = SonoraAccount.mount({
+    api, normalizeSong, toast,
+    sameOrigin: () => !apiBase || new URL(apiBase).origin === location.origin,
+    onLibrary: () => changeView('playlists'),
+    onSignedOut: () => { playlistSongs = []; if (view === 'playlist') changeView('discover') },
+    onSongs: (songs, title, more, total) => {
+      playlistSongs = songs; changeView('playlist')
+      $('list-title').firstChild.textContent = title + ' '
+      $('list-message').textContent = `已加载 ${songs.length} 首${total ? ` / 共 ${total} 首` : ''} · 播放全部将播放当前已加载的曲目`
+      $('load-more-tracks').hidden = !more
+      $('breadcrumb').textContent = title
+    },
+  })
+  $('load-more-tracks').onclick = () => account.loadMoreTracks()
+  renderTracks(); draw(); discover(); account.restore()
 })()

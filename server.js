@@ -204,7 +204,7 @@ function createTokenAuth(token) {
       return
     }
 
-    if (queryToken) {
+    if (tokensMatch(queryToken, token)) {
       res.cookie('api_token', queryToken, {
         httpOnly: true,
         sameSite: 'strict',
@@ -280,16 +280,80 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
     req.method === 'OPTIONS' ? res.status(204).end() : next()
   })
 
+  const authCookieOptions = {
+    httpOnly: true,
+    sameSite: 'strict',
+    path: '/',
+  }
+  const sameOriginForm = (req, res, next) => {
+    const origin = req.get('origin')
+    if (origin && origin !== `${req.protocol}://${req.get('host')}`) {
+      res.status(403).send({ code: 403, msg: 'Forbidden origin' })
+      return
+    }
+    res.set('Cache-Control', 'no-store')
+    next()
+  }
+
   app.get('/auth', (_, res) => {
+    res.set('Cache-Control', 'no-store')
     res.sendFile(path.join(__dirname, 'public', 'auth.html'))
+  })
+
+  app.post(
+    '/auth',
+    sameOriginForm,
+    express.urlencoded({ extended: false, limit: '4kb' }),
+    (req, res) => {
+      if (!token) {
+        res
+          .status(503)
+          .type('text')
+          .send('管理员尚未配置 API_TOKEN，暂时无法登录音乐播放器。')
+        return
+      }
+      if (!tokensMatch(req.body?.token, token)) {
+        res.redirect(303, '/auth?error=1')
+        return
+      }
+      res.cookie('api_token', token, {
+        ...authCookieOptions,
+        secure: req.protocol === 'https',
+      })
+      res.redirect(303, '/')
+    },
+  )
+
+  app.post('/auth/logout', sameOriginForm, (req, res) => {
+    res.clearCookie('api_token', {
+      ...authCookieOptions,
+      secure: req.protocol === 'https',
+    })
+    res.status(204).end()
   })
 
   app.use(createTokenAuth(token))
 
   /**
-   * Serving static files
+   * Static pages, including the player and its assets, require API_TOKEN.
+   * Keep the existing optional authentication behavior for API-only installs.
    */
-  app.use(express.static(path.join(__dirname, 'public')))
+  if (token) {
+    app.use(
+      express.static(path.join(__dirname, 'public'), {
+        setHeaders: (res) => res.set('Cache-Control', 'private, no-store'),
+      }),
+    )
+  } else {
+    app.get(['/', '/index.html'], (_, res) => {
+      res
+        .status(503)
+        .type('text')
+        .send(
+          '请先在服务器环境变量中配置 API_TOKEN，重启后访问 /auth 登录音乐播放器。',
+        )
+    })
+  }
 
   /**
    * Cookie Parser
@@ -304,6 +368,8 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
         pair.slice(crack + 1),
       ).trim()
     })
+    // This cookie authenticates the API service, not the upstream music account.
+    delete req.cookies.api_token
     next()
   })
 
@@ -333,7 +399,35 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
   /**
    * Cache
    */
-  app.use(cache('2 minutes', (_, res) => res.statusCode === 200))
+  const privateRoutes = new Set([
+    '/captcha/sent',
+    '/captcha/verify',
+    '/login/cellphone',
+    '/login/status',
+    '/login/refresh',
+    '/logout',
+    '/user/account',
+    '/user/playlist',
+    '/playlist/detail',
+    '/playlist/track/all',
+    '/likelist',
+    '/like',
+    '/recommend/songs',
+  ])
+  app.use((req, res, next) => {
+    if (privateRoutes.has(req.path.toLowerCase().replace(/\/+$/, ''))) {
+      res.set('Cache-Control', 'private, no-store')
+    }
+    next()
+  })
+  app.use(
+    cache(
+      '2 minutes',
+      (req, res) =>
+        !privateRoutes.has(req.path.toLowerCase().replace(/\/+$/, '')) &&
+        res.statusCode === 200,
+    ),
+  )
 
   /**
    * Special Routers
@@ -432,7 +526,17 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
           }
         }
 
-        const cookies = moduleResponse.cookie
+        // Keep phone-login cookies out of document.cookie. Browser requests to
+        // this same-origin player carry them automatically on subsequent calls.
+        const upstreamCookies = Array.isArray(moduleResponse.cookie)
+          ? moduleResponse.cookie
+          : []
+        const cookies = upstreamCookies.map((cookie) =>
+          moduleDef.route === '/login/cellphone' &&
+          !/;\s*httponly(?:;|$)/i.test(cookie)
+            ? `${cookie}; HttpOnly`
+            : cookie,
+        )
         if (!query.noCookie) {
           if (Array.isArray(cookies) && cookies.length > 0) {
             if (req.protocol === 'https') {
