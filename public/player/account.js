@@ -103,12 +103,13 @@
     return { state, reset, restore, sendCaptcha, signIn, createQR, checkQR, stopQR, playlists, tracks, daily, signOut, cancelPlaylist }
   }
 
-  function mount({ api, normalizeSong, sameOrigin, toast, onLibrary, onSongs, onSignedOut = () => {} }) {
+  function mount({ api, normalizeSong, sameOrigin, toast, onLibrary, onSongs, onSignedOut = () => {}, onAccountChange = () => {} }) {
     const $ = (id) => document.getElementById(id)
     let client, countdownTimer, countdownUntil = 0, viewRequest = 0, previousProfile = null, loginMethod = 'qr', qrTimer, qrRun = 0
     function showError(error) { $('music-login-status').textContent = error.message || '请求失败，请稍后重试。'; toast(error.message || '请求失败') }
     function render(state) {
       const profile = state.profile
+      if (previousProfile?.userId !== profile?.userId) onAccountChange(profile)
       if (previousProfile && !profile) onSignedOut()
       previousProfile = profile
       $('login-methods').hidden = Boolean(profile)
@@ -264,7 +265,7 @@
       catch (error) { showError(error) } finally { $('music-signout').disabled = false }
     }
     render(client.state)
-    return { open, restore, reset: () => { viewRequest++; stopPolling(); client.reset() }, cancelPlaylistView: () => { viewRequest++; client.cancelPlaylist() }, loadMoreTracks: () => { if (client.state.active && client.state.moreTracks) return openPlaylist(client.state.active, true) } }
+    return { open, restore, profile: () => client.state.profile, reset: () => { viewRequest++; stopPolling(); client.reset() }, cancelPlaylistView: () => { viewRequest++; client.cancelPlaylist() }, loadMoreTracks: () => { if (client.state.active && client.state.moreTracks) return openPlaylist(client.state.active, true) } }
   }
   const exported = { createClient, mount }
   if (typeof module !== 'undefined' && module.exports) module.exports = exported

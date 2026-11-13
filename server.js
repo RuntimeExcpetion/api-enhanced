@@ -398,6 +398,7 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
 
   const { createDownloadHandler } = require('./util/player-download')
   const downloadHandler = createDownloadHandler({
+    signingSecret: token || undefined,
     resolveSong: (query) =>
       require('./module/song_download_url_v1')(
         { ...query, timeout: 15000 },
