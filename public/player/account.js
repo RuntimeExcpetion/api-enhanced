@@ -2,14 +2,14 @@
 ;(function (root) {
   'use strict'
   function createClient({ api, normalizeSong, sameOrigin, onChange = () => {} }) {
-    let revision = 0, playlistRequest = 0
+    let revision = 0, playlistRequest = 0, qrRevision = 0, qrKey = null
     const state = { profile: null, playlists: [], morePlaylists: false, active: null, songs: [], moreTracks: false }
-    function reset() { revision++; playlistRequest++; Object.assign(state, { profile: null, playlists: [], morePlaylists: false, active: null, songs: [], moreTracks: false }); onChange(state) }
-    function requireOrigin() { if (!sameOrigin()) throw new Error('网易云账号功能需要连接同站 API，请在连接设置中选择“使用同站 API”。') }
-    function requireLogin() { requireOrigin(); if (!state.profile) throw new Error('请先通过手机号登录网易云账号。') }
-    async function request(path, params, method = 'GET') {
+    function reset() { revision++; playlistRequest++; stopQR(); Object.assign(state, { profile: null, playlists: [], morePlaylists: false, active: null, songs: [], moreTracks: false }); onChange(state) }
+    function requireOrigin() { if (!sameOrigin()) throw new Error('网易云账号功能需要使用同站 API。') }
+    function requireLogin() { requireOrigin(); if (!state.profile) throw new Error('请先扫码或通过手机号登录网易云账号。') }
+    async function request(path, params, method = 'GET', extra = {}) {
       requireOrigin()
-      try { return await api(path, params || {}, { method, private: true }) }
+      try { return await api(path, params || {}, { method, private: true, ...extra }) }
       catch (error) { if (error.code === 301) { reset(); throw new Error('网易云登录已失效，请重新登录。') } throw error }
     }
     function phoneParams(phone, countrycode) {
@@ -32,14 +32,45 @@
       return result
     }
     async function signIn(phone, countrycode, captcha) {
+      stopQR()
       const params = phoneParams(phone, countrycode)
       if (!/^\d{4,8}$/.test(String(captcha).trim())) throw new Error('请输入 4 至 8 位短信验证码。')
-      const expected = revision
+      const expected = ++revision
       const result = await request('/login/cellphone', { ...params, captcha: String(captcha).trim() }, 'POST')
       if (expected !== revision) return null
       if (!result.profile?.userId) throw new Error('服务未返回账号资料，请重新登录。')
       state.profile = result.profile; state.playlists = []; state.morePlaylists = false; onChange(state)
       return state.profile
+    }
+    function stopQR() { qrRevision++; qrKey = null }
+    async function createQR() {
+      requireOrigin(); stopQR()
+      const expected = ++revision, generation = qrRevision
+      const keyResult = await request('/login/qr/key', {}, 'POST')
+      if (revision !== expected || qrRevision !== generation) return null
+      const key = keyResult.data?.unikey
+      if (typeof key !== 'string' || !key) throw new Error('未能获取二维码密钥，请刷新重试。')
+      const imageResult = await request('/login/qr/create', { key, qrimg: true }, 'POST')
+      if (revision !== expected || qrRevision !== generation) return null
+      const image = imageResult.data?.qrimg
+      if (typeof image !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(image)) throw new Error('二维码生成失败，请刷新重试。')
+      qrKey = key
+      return { image }
+    }
+    async function checkQR() {
+      if (!qrKey) return null
+      const expected = revision, generation = qrRevision
+      const result = await request('/login/qr/check', { key: qrKey }, 'POST', { allowedCodes: [800, 801, 802, 803] })
+      if (revision !== expected || qrRevision !== generation) return null
+      if (![800, 801, 802, 803].includes(result.code)) throw new Error('扫码状态暂不可用，请刷新二维码。')
+      if (result.code === 800) stopQR()
+      if (result.code === 803) {
+        const profile = await restore()
+        if (revision !== expected || qrRevision !== generation) return null
+        if (!profile) throw new Error('扫码已确认，但未能读取账号，请重新登录。')
+        stopQR()
+      }
+      return { code: result.code, profile: state.profile }
     }
     async function playlists(append = false) {
       requireLogin(); const expected = revision, uid = state.profile.userId, offset = append ? state.playlists.length : 0
@@ -68,19 +99,21 @@
       state.active = { id: 'daily', name: '每日推荐', trackCount: result.data?.dailySongs?.length || 0 }
       state.songs = (result.data?.dailySongs || []).map(normalizeSong); state.moreTracks = false; onChange(state); return state.songs
     }
-    async function signOut() { await request('/logout', {}, 'POST'); reset() }
-    return { state, reset, restore, sendCaptcha, signIn, playlists, tracks, daily, signOut, cancelPlaylist }
+    async function signOut() { stopQR(); await request('/logout', {}, 'POST'); reset() }
+    return { state, reset, restore, sendCaptcha, signIn, createQR, checkQR, stopQR, playlists, tracks, daily, signOut, cancelPlaylist }
   }
 
   function mount({ api, normalizeSong, sameOrigin, toast, onLibrary, onSongs, onSignedOut = () => {} }) {
     const $ = (id) => document.getElementById(id)
-    let client, countdownTimer, countdownUntil = 0, viewRequest = 0, previousProfile = null
+    let client, countdownTimer, countdownUntil = 0, viewRequest = 0, previousProfile = null, loginMethod = 'qr', qrTimer, qrRun = 0
     function showError(error) { $('music-login-status').textContent = error.message || '请求失败，请稍后重试。'; toast(error.message || '请求失败') }
     function render(state) {
       const profile = state.profile
       if (previousProfile && !profile) onSignedOut()
       previousProfile = profile
-      $('phone-login-form').hidden = Boolean(profile); $('music-profile').hidden = !profile
+      $('login-methods').hidden = Boolean(profile)
+      $('qr-login-panel').hidden = Boolean(profile) || loginMethod !== 'qr'
+      $('phone-login-form').hidden = Boolean(profile) || loginMethod !== 'phone'; $('music-profile').hidden = !profile
       $('music-account-title').textContent = profile ? '我的网易云账号' : '登录网易云音乐'
       $('account-name').textContent = profile?.nickname || '网易云用户'
       $('account-user-id').textContent = profile ? `UID ${profile.userId}` : ''
@@ -107,7 +140,68 @@
       try { if (await client.restore()) await client.playlists() }
       catch (error) { $('playlist-status').textContent = error.message || '账号状态暂不可用，请重新登录。' }
     }
-    function open() { $('music-login-status').textContent = sameOrigin() ? '' : '账号功能需要同站 API，请先调整连接设置。'; $('music-account').showModal() }
+    function stopPolling() { qrRun++; clearTimeout(qrTimer); client.stopQR() }
+    async function finishLogin(profile) {
+      stopPolling(); $('phone-number').value = $('phone-captcha').value = ''
+      $('music-account').close(); toast(`欢迎回来，${profile.nickname || '网易云用户'}`)
+      onLibrary(); await loadPlaylists()
+    }
+    async function pollQR(run) {
+      if (run !== qrRun || !$('music-account').open || loginMethod !== 'qr' || document.hidden) return
+      try {
+        const result = await client.checkQR()
+        if (run !== qrRun || !result) return
+        const messages = { 800: '二维码已过期，请点击刷新二维码。', 801: '打开网易云音乐 App，扫一扫登录。', 802: '已扫码，请在手机上确认登录。', 803: '登录成功，正在读取歌单…' }
+        $('qr-status').textContent = messages[result.code]
+        if (result.code === 803) { await finishLogin(result.profile); return }
+        if (result.code === 800) { $('qr-image').classList.add('expired'); return }
+        qrTimer = setTimeout(() => pollQR(run), 2000)
+      } catch (error) {
+        if (run !== qrRun) return
+        $('qr-status').textContent = error.message || '连接失败，请刷新二维码。'
+        $('qr-image').classList.add('expired')
+      }
+    }
+    async function startQR() {
+      stopPolling(); const run = qrRun
+      $('qr-image').hidden = true; $('qr-image').classList.remove('expired'); $('qr-refresh').disabled = true
+      $('qr-status').textContent = '正在生成登录二维码…'
+      try {
+        const result = await client.createQR()
+        if (run !== qrRun || !result) return
+        $('qr-image').src = result.image; $('qr-image').hidden = false
+        $('qr-status').textContent = '打开网易云音乐 App，扫一扫登录。'
+        qrTimer = setTimeout(() => pollQR(run), 2000)
+      } catch (error) { if (run === qrRun) $('qr-status').textContent = error.message || '二维码生成失败，请重试。' }
+      finally { if (run === qrRun) $('qr-refresh').disabled = false }
+    }
+    function selectLoginMethod(method) {
+      loginMethod = method; stopPolling(); $('music-login-status').textContent = ''
+      $('qr-tab').setAttribute('aria-selected', method === 'qr'); $('phone-tab').setAttribute('aria-selected', method === 'phone')
+      $('qr-tab').tabIndex = method === 'qr' ? 0 : -1; $('phone-tab').tabIndex = method === 'phone' ? 0 : -1
+      render(client.state)
+      if (method === 'qr' && !client.state.profile && $('music-account').open) startQR()
+    }
+    function open() {
+      $('music-login-status').textContent = sameOrigin() ? '' : '请通过本站入口验证后使用网易云登录。'
+      $('music-account').showModal(); render(client.state)
+      if (!client.state.profile && loginMethod === 'qr') startQR()
+    }
+    $('qr-tab').onclick = () => selectLoginMethod('qr')
+    $('phone-tab').onclick = () => selectLoginMethod('phone')
+    $('login-methods').addEventListener('keydown', (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+      event.preventDefault()
+      const method = event.key === 'Home' ? 'qr' : event.key === 'End' ? 'phone' : loginMethod === 'qr' ? 'phone' : 'qr'
+      selectLoginMethod(method); $(method === 'qr' ? 'qr-tab' : 'phone-tab').focus()
+    })
+    $('qr-refresh').onclick = startQR
+    $('music-account').addEventListener('close', stopPolling)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopPolling()
+      else if ($('music-account').open && loginMethod === 'qr' && !client.state.profile) startQR()
+    })
+    window.addEventListener('pagehide', stopPolling)
     async function library() {
       viewRequest++; client.cancelPlaylist(); onLibrary()
       if (!client.state.profile) { open(); return }
@@ -161,8 +255,7 @@
       try {
         const profile = await client.signIn($('phone-number').value, $('phone-country').value, $('phone-captcha').value)
         if (!profile) return
-        $('phone-number').value = $('phone-captcha').value = ''; $('music-account').close(); toast(`欢迎回来，${profile.nickname || '网易云用户'}`)
-        onLibrary(); await loadPlaylists()
+        await finishLogin(profile)
       } catch (error) { showError(error) } finally { $('phone-login-submit').disabled = false }
     }
     $('music-signout').onclick = async () => {
@@ -171,7 +264,7 @@
       catch (error) { showError(error) } finally { $('music-signout').disabled = false }
     }
     render(client.state)
-    return { open, restore, reset: () => { viewRequest++; client.reset() }, cancelPlaylistView: () => { viewRequest++; client.cancelPlaylist() }, loadMoreTracks: () => { if (client.state.active && client.state.moreTracks) return openPlaylist(client.state.active, true) } }
+    return { open, restore, reset: () => { viewRequest++; stopPolling(); client.reset() }, cancelPlaylistView: () => { viewRequest++; client.cancelPlaylist() }, loadMoreTracks: () => { if (client.state.active && client.state.moreTracks) return openPlaylist(client.state.active, true) } }
   }
   const exported = { createClient, mount }
   if (typeof module !== 'undefined' && module.exports) module.exports = exported

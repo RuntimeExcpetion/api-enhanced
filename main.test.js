@@ -69,7 +69,8 @@ describe('methods in server.js', () => {
 
 describe('player login and private library integration', () => {
   async function withServer(token, run) {
-    let loginCalls = 0
+    let loginCalls = 0,
+      qrChecks = 0
     const app = await main.server.constructServer(
       [
         {
@@ -86,6 +87,18 @@ describe('player login and private library integration', () => {
               status: 200,
               body: { code: 200, calls: loginCalls },
               cookie: ['MUSIC_U=mock-music-session; Path=/'],
+            }
+          },
+        },
+        {
+          route: '/login/qr/check',
+          module: async (query) => {
+            assert.strictEqual(query.key, 'test-qr-key')
+            const code = [801, 802, 803][Math.min(qrChecks++, 2)]
+            return {
+              status: 200,
+              body: { code },
+              cookie: code === 803 ? ['MUSIC_U=qr-music-session; Path=/'] : [],
             }
           },
         },
@@ -150,7 +163,10 @@ describe('player login and private library integration', () => {
       const home = await fetch(`${base}/`, { headers: { Cookie: cookie } })
       assert.strictEqual(home.status, 200)
       assert.match(home.headers.get('cache-control'), /no-store/)
-      assert.match(await home.text(), /登录并获取歌单/)
+      const html = await home.text()
+      assert.match(html, /登录并获取歌单/)
+      assert.match(html, /扫码登录/)
+      assert.doesNotMatch(html, /id="(?:api-token|api-base|settings)"/)
       assert.strictEqual(
         (
           await fetch(`${base}/player/account.js`, {
@@ -243,6 +259,36 @@ describe('player login and private library integration', () => {
       assert.strictEqual((await account.json()).profile.userId, 123)
       const anonymous = await fetch(`${base}/user/account`, { headers })
       assert.strictEqual((await anonymous.json()).profile, null)
+    })
+  })
+  it('polls QR state without caching and uses the outer login cookie without a second token', async () => {
+    await withServer('test-token', async (base) => {
+      const login = await fetch(`${base}/auth`, {
+        method: 'POST',
+        body: new URLSearchParams({ token: 'test-token' }),
+        redirect: 'manual',
+      })
+      const cookie = login.headers.get('set-cookie').split(';')[0]
+      for (const code of [801, 802, 803]) {
+        const response = await fetch(`${base}/login/qr/check`, {
+          method: 'POST',
+          headers: { Cookie: cookie },
+          body: new URLSearchParams({ key: 'test-qr-key' }),
+        })
+        assert.strictEqual((await response.json()).code, code)
+        assert.match(response.headers.get('cache-control'), /no-store/)
+        if (code === 803) {
+          assert.match(
+            response.headers.get('set-cookie'),
+            /MUSIC_U=qr-music-session/,
+          )
+          assert.match(response.headers.get('set-cookie'), /HttpOnly/)
+        }
+      }
+      const account = await fetch(`${base}/user/account`, {
+        headers: { Cookie: `${cookie}; MUSIC_U=qr-music-session` },
+      })
+      assert.strictEqual((await account.json()).profile.userId, 123)
     })
   })
 })

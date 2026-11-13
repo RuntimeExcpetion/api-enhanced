@@ -131,3 +131,109 @@ test('late responses after reset or navigation cannot restore private data or re
   assert.equal(await tracks, null)
   assert.equal(client.state.active, null)
 })
+test('QR sign-in generates a PNG and handles waiting, scanned, authorized, and expired states', async () => {
+  const calls = [],
+    statuses = [801, 802, 803]
+  const client = make(async (...args) => {
+    calls.push(args)
+    if (args[0] === '/login/qr/key')
+      return { code: 200, data: { unikey: 'test-key' } }
+    if (args[0] === '/login/qr/create')
+      return { code: 200, data: { qrimg: 'data:image/png;base64,dGVzdA==' } }
+    if (args[0] === '/login/qr/check') return { code: statuses.shift() || 800 }
+    if (args[0] === '/user/account') return { code: 200, profile }
+  })
+  assert.deepEqual(await client.createQR(), {
+    image: 'data:image/png;base64,dGVzdA==',
+  })
+  assert.deepEqual(calls[1][1], { key: 'test-key', qrimg: true })
+  assert.equal((await client.checkQR()).code, 801)
+  assert.equal((await client.checkQR()).code, 802)
+  assert.equal(client.state.profile, null)
+  assert.equal((await client.checkQR()).code, 803)
+  assert.equal(client.state.profile.userId, 123)
+  assert.equal(await client.checkQR(), null)
+  assert.deepEqual(calls[2][2], {
+    method: 'POST',
+    private: true,
+    allowedCodes: [800, 801, 802, 803],
+  })
+  await client.createQR()
+  assert.equal((await client.checkQR()).code, 800)
+  assert.equal(await client.checkQR(), null)
+})
+test('QR refresh and cancel ignore stale keys and authorization responses', async () => {
+  let done
+  const client = make(async (path) => {
+    if (path === '/login/qr/key')
+      return new Promise((resolve) => {
+        done = resolve
+      })
+    if (path === '/login/qr/create')
+      return { data: { qrimg: 'data:image/png;base64,dGVzdA==' } }
+    if (path === '/login/qr/check')
+      return new Promise((resolve) => {
+        done = resolve
+      })
+    if (path === '/user/account') return { profile }
+  })
+  const oldQR = client.createQR()
+  client.stopQR()
+  done({ data: { unikey: 'stale' } })
+  assert.equal(await oldQR, null)
+  const freshQR = client.createQR()
+  done({ data: { unikey: 'fresh' } })
+  await freshQR
+  const check = client.checkQR()
+  client.reset()
+  done({ code: 803 })
+  assert.equal(await check, null)
+  assert.equal(client.state.profile, null)
+})
+test('QR generation rejects unexpected images and check rejects missing status', async () => {
+  const client = make(async (path) =>
+    path === '/login/qr/key'
+      ? { data: { unikey: 'key' } }
+      : { data: { qrimg: 'javascript:alert(1)' } },
+  )
+  await assert.rejects(client.createQR(), /二维码生成失败/)
+  const invalidStatus = make(async (path) => {
+    if (path === '/login/qr/key') return { data: { unikey: 'key' } }
+    if (path === '/login/qr/create')
+      return { data: { qrimg: 'data:image/png;base64,dGVzdA==' } }
+    return {}
+  })
+  await invalidStatus.createQR()
+  await assert.rejects(invalidStatus.checkQR(), /扫码状态/)
+})
+test('QR API preserves upstream failures instead of throwing an undefined-result error', async () => {
+  const qrCheck = require('../module/login_qr_check.js')
+  const error = { status: 502, body: { code: 502, message: 'Network failure' } }
+  await assert.rejects(
+    qrCheck({ key: 'key' }, async () => {
+      throw error
+    }),
+    (received) => received === error,
+  )
+  const result = await qrCheck({ key: 'key' }, async () => ({
+    body: { code: 803 },
+    cookie: ['MUSIC_U=test'],
+  }))
+  assert.equal(result.body.code, 803)
+  assert.deepEqual(result.cookie, ['MUSIC_U=test'])
+})
+test('an older session restore cannot overwrite a newly completed phone login', async () => {
+  let finishRestore
+  const client = make(async (path) => {
+    if (path === '/user/account')
+      return new Promise((resolve) => {
+        finishRestore = resolve
+      })
+    if (path === '/login/cellphone') return { code: 200, profile }
+  })
+  const restore = client.restore()
+  await client.signIn('13800000000', '86', '123456')
+  finishRestore({ code: 200, profile: null })
+  await restore
+  assert.equal(client.state.profile.userId, 123)
+})

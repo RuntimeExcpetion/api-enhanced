@@ -36,7 +36,6 @@
     <input id="files" type="file" accept="audio/*,.flac,.mp3,.wav,.m4a,.ogg" multiple hidden>
     <div class="sidebar-note"><span class="note-spark">✳</span><p>把世界调成<br>你喜欢的频率。</p><small>YOUR SOUND, YOUR SPACE.</small></div>
     <button class="nav-item logout-button" id="logout-button" aria-label="退出登录"><svg><use href="#i-logout"/></svg>退出登录</button>
-    <button class="nav-item settings-button" id="settings-button"><svg><use href="#i-settings"/></svg>连接设置</button>
     <a class="api-link" href="/api-console.html" target="_blank" rel="noopener">API 工具 ↗</a>
   </aside>
   <div class="workspace">
@@ -79,15 +78,16 @@
   <dialog id="music-account" aria-labelledby="music-account-title">
     <div class="dialog-heading"><h2 id="music-account-title">登录网易云音乐</h2><button type="button" id="music-account-close" class="icon-button" aria-label="关闭">×</button></div>
     <p>连接你的网易云账号，听见收藏的好声音。</p>
-    <form id="phone-login-form">
+    <div id="login-methods" class="login-tabs" role="tablist" aria-label="网易云登录方式"><button type="button" id="qr-tab" role="tab" aria-controls="qr-login-panel" aria-selected="true">扫码登录</button><button type="button" id="phone-tab" role="tab" tabindex="-1" aria-controls="phone-login-form" aria-selected="false">手机号登录</button></div>
+    <div id="qr-login-panel" class="qr-login-panel" role="tabpanel" aria-labelledby="qr-tab"><div class="qr-image-box"><img id="qr-image" alt="使用网易云音乐 App 扫描此二维码登录" width="200" height="200" hidden></div><p id="qr-status" role="status">点击刷新生成登录二维码。</p><button id="qr-refresh" type="button" class="outline-button">刷新二维码 ↻</button></div>
+    <form id="phone-login-form" role="tabpanel" aria-labelledby="phone-tab" hidden>
       <label for="phone-number">手机号码</label><div class="phone-row"><input id="phone-country" type="text" inputmode="numeric" pattern="[0-9]{1,4}" value="86" maxlength="4" aria-label="国家区号" required><input id="phone-number" type="tel" autocomplete="tel-national" inputmode="tel" pattern="[0-9]{5,15}" maxlength="15" placeholder="手机号（不含国家区号）" required></div>
       <label for="phone-captcha">短信验证码</label><div class="captcha-row"><input id="phone-captcha" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" placeholder="输入验证码" required><button type="button" id="send-captcha" class="outline-button">获取验证码</button></div>
       <button type="submit" class="primary-button" id="phone-login-submit">登录并获取歌单 ↗</button>
       <p class="settings-note">验证码由网易云发送。若触发风控或验证码校验，请按服务返回的提示处理后重试。</p>
     </form>
     <div id="music-profile" hidden><div class="account-profile"><img id="account-avatar" alt="账号头像" referrerpolicy="no-referrer" hidden><div><h3 id="account-name"></h3><small id="account-user-id"></small></div></div><button id="account-playlists" class="primary-button">查看我的歌单 ↗</button><button id="music-signout" class="outline-button account-signout">退出网易云账号</button></div>
-    <p id="music-login-status" role="status"></p><button id="account-settings" class="text-button">音乐服务连接设置 ↗</button>
+    <p id="music-login-status" role="status"></p>
   </dialog>
-  <dialog id="settings"><form id="settings-form"><div class="dialog-heading"><h2>连接音乐服务</h2><button type="button" id="close-settings" class="icon-button" aria-label="关闭">×</button></div><p>默认使用当前站点的登录状态，也可以切换到其他部署。</p><label for="api-base">API 服务地址</label><input id="api-base" type="url" placeholder="留空并勾选下方选项，使用同站 API"><label class="checkbox-label"><input id="same-origin" type="checkbox"> 使用同站 API（播放器与 API 部署在一起）</label><label for="api-token">访问令牌（可选）</label><input id="api-token" type="password" autocomplete="off" placeholder="仅当前标签页保存"><p class="settings-note">远程服务需要允许此播放器的来源（CORS）。歌曲是否可播由账号与版权权限决定。</p><button type="submit" class="primary-button">保存并连接 ↗</button><p id="settings-status" role="status"></p></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div><audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
 </body></html>

@@ -403,6 +403,9 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
     '/captcha/sent',
     '/captcha/verify',
     '/login/cellphone',
+    '/login/qr/key',
+    '/login/qr/create',
+    '/login/qr/check',
     '/login/status',
     '/login/refresh',
     '/logout',
@@ -526,13 +529,13 @@ async function constructServer(moduleDefs, token = process.env.API_TOKEN) {
           }
         }
 
-        // Keep phone-login cookies out of document.cookie. Browser requests to
+        // Keep music-login cookies out of document.cookie. Browser requests to
         // this same-origin player carry them automatically on subsequent calls.
         const upstreamCookies = Array.isArray(moduleResponse.cookie)
           ? moduleResponse.cookie
           : []
         const cookies = upstreamCookies.map((cookie) =>
-          moduleDef.route === '/login/cellphone' &&
+          ['/login/cellphone', '/login/qr/check'].includes(moduleDef.route) &&
           !/;\s*httponly(?:;|$)/i.test(cookie)
             ? `${cookie}; HttpOnly`
             : cookie,
