@@ -214,7 +214,7 @@
   }
   function draw() {
     cancelAnimationFrame(frame)
-    if ($('details-panel').hidden && $('listening-stage').hidden) return
+    if ($('details-panel').hidden && $('listening-stage').hidden && $('music-pet').hidden) return
     const playing = Boolean(analyser && frequency && waveform && !audio.paused && !audio.ended)
     if (playing) { analyser.getByteFrequencyData(frequency); analyser.getByteTimeDomainData(waveform) }
     stage.draw({ bins: frequency, waveform, playing, sampleRate: audioContext?.sampleRate || 44100, fftSize: analyser?.fftSize || 8192, time: audio.currentTime })

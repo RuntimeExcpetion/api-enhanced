@@ -172,3 +172,19 @@ test('download tickets are reusable across instances with the same secret and re
   )
   assert.throws(() => ticketCodec('another-key').open(ticket), /下载信息无效/)
 })
+
+test('music pet measures actual bass energy across sample rates and stays still for silence', () => {
+  const { beatEnergy } = require('../public/player/stage')
+  for (const sampleRate of [44100, 48000]) {
+    const bins = new Uint8Array(4096)
+    assert.equal(beatEnergy(bins, sampleRate, 8192), 0)
+    for (let i = 1; i < bins.length; i++)
+      if ((i * sampleRate) / 8192 >= 45 && (i * sampleRate) / 8192 <= 180)
+        bins[i] = 255
+    assert.equal(beatEnergy(bins, sampleRate, 8192), 1)
+    bins.fill(0)
+    bins[Math.round((1500 * 8192) / sampleRate)] = 255
+    assert.equal(beatEnergy(bins, sampleRate, 8192), 0)
+  }
+  assert.equal(beatEnergy(null, 44100, 8192), 0)
+})
