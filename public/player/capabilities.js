@@ -50,7 +50,7 @@
       const playAll=button('播放全部',()=>{if(recentSongs.length)onPlaySongs(recentSongs,0)},'primary-button')
       const refresh=button('刷新记录',()=>openSection('recent'))
       playAll.disabled=true
-      header('网易云最近播放','来自当前网易云账号 · 显示最近 100 首歌曲',[playAll,refresh])
+      header('网易云最近播放','来自当前网易云账号 · 每次最多请求 100 条播放记录',[playAll,refresh])
       const container=$('visual-results');container.replaceChildren();$('visual-more').hidden=true
       const profile=getProfile()
       if(!profile){resumeRecent=true;status('登录网易云账号后，查看你的最近播放记录。');container.append(button('登录网易云',()=>openAccount(),'primary-button'));openAccount();return}
@@ -60,6 +60,9 @@
         const result=await request('/record/recent/song',{limit:100})
         if(generation!==run||currentSection!=='recent'||String(getProfile()?.userId)!==accountId)return
         recentSongs=V.recentSongs(result,PlayerCore.normalizeSong);currentList=recentSongs
+        const summary=V.recentSummary(result,recentSongs)
+        const countText=`网易云本次返回 ${summary.returned} 条记录 · 可显示 ${summary.displayed} 条（${summary.unique} 首不同歌曲）${summary.total!==null?` · 云端总数 ${summary.total} 条`:''}${summary.unavailable?` · ${summary.unavailable} 条缺少歌曲信息`:''}`
+        $('visual-subtitle').textContent=countText
         if(!recentSongs.length){container.append(el('div','网易云暂时没有返回最近播放记录。听过一些歌曲后，可以点击刷新。','visual-empty'));status('');return}
         const list=el('div',null,'recent-song-list'),heading=el('div',null,'recent-song-heading')
         for(const text of ['#','歌曲 / 歌手','专辑','播放时间','时长','操作'])heading.append(el('span',text))
@@ -79,7 +82,7 @@
           row.append(el('span',String(index+1).padStart(2,'0'),'recent-song-index'),main,album,date,el('span',PlayerCore.formatTime(song.duration),'recent-song-duration'),actions);list.append(row)
         })
         container.append(list);playAll.disabled=false
-        status(`已读取 ${recentSongs.length} 首最近听过的歌曲，点击歌曲即可再次播放。`)
+        status(`${countText}。保留重复播放记录；点击歌曲可再次播放，刷新可重新同步云端。`)
       }catch(error){
         if(generation!==run||currentSection!=='recent')return
         if(error.code===301||error.code===401){resumeRecent=true;status('网易云登录已失效，请重新登录后刷新。');container.append(button('重新登录网易云',()=>openAccount(),'primary-button'))}

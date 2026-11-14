@@ -60,3 +60,39 @@ test('drag positions stay in the viewport and above the player across desktop an
     assert.equal(edge.y + size.height, footer - 8)
   }
 })
+
+test('idle behavior and monologues run without music and cycle through varied actions', () => {
+  const { createIdleDirector } = require('../public/player/pet')
+  const director = createIdleDirector({ now: 0, random: () => 0 })
+  assert.deepEqual(director.poll({ now: 0 }), {})
+  const actions = []
+  for (let now = 1800; now < 28000; now += 4200) {
+    const result = director.poll({ now, playing: false })
+    if (result.action) actions.push(result.action.pose)
+  }
+  assert.deepEqual(actions.slice(0, 6), [
+    'blink',
+    'look-left',
+    'look-right',
+    'stretch',
+    'wave',
+    'sleep',
+  ])
+  const speech = createIdleDirector({ now: 0, random: () => 0 })
+  assert.ok(speech.poll({ now: 5200, playing: false }).speech)
+  assert.ok(speech.poll({ now: 16200, playing: false }).speech)
+})
+test('hidden, quiet and busy companions defer activity without accumulating a burst on return', () => {
+  const { createIdleDirector } = require('../public/player/pet')
+  for (const state of [{ visible: false }, { quiet: true }, { busy: true }]) {
+    const director = createIdleDirector({ now: 0, random: () => 0 })
+    assert.deepEqual(director.poll({ now: 60000, ...state }), {})
+    assert.deepEqual(director.poll({ now: 60001 }), {})
+    assert.ok(director.poll({ now: 68000 }).speech)
+  }
+  const director = createIdleDirector({ now: 0, random: () => 0 })
+  assert.equal(director.poll({ now: 6000, playing: true }).action, undefined)
+  assert.ok(director.poll({ now: 30000, playing: true }).speech)
+  const reduced = createIdleDirector({ now: 0, random: () => 0 })
+  assert.equal(reduced.poll({ now: 6000, reduced: true }).action, undefined)
+})

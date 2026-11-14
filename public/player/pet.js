@@ -25,17 +25,86 @@
     }
     return { update, reset }
   }
+  const idleActions = [
+    { pose: 'blink', duration: 260 }, { pose: 'look-left', duration: 1800 },
+    { pose: 'look-right', duration: 1800 }, { pose: 'stretch', duration: 2200 },
+    { pose: 'wave', duration: 2000 }, { pose: 'sleep', duration: 3200 },
+  ]
+  const idleWords = ['不放音乐也没关系，陪你发会儿呆。', '今天的第一首歌，想听什么？', '刚刚那朵云，好像一个音符。', '伸个懒腰，继续陪你。', '要不要试试把我拖到另一边？', '我在这里，慢慢挑一首喜欢的吧。', '安静的时间，也很适合放松。', '偷偷练一下舞步，等你放歌。', '想看我表演？点旁边的小气泡。', '休息一下眼睛吧，我替你守着歌单。']
+  const musicWords = ['这段旋律真好听，忍不住想跳舞。', '把烦恼交给音乐，今天慢慢来。', '每一个音符，都有自己的小宇宙。', '跟着节拍，轻轻晃一下。', '好歌要慢慢听，我陪你。']
+  function createIdleDirector({ now = Date.now(), random = Math.random } = {}) {
+    let nextAction = now + 1800, nextSpeech = now + 5200, actionIndex = 0, wordIndex = 0
+    const delay = (base, spread) => base + random() * spread
+    function defer(time) { nextAction = time + delay(2500, 2000); nextSpeech = time + delay(8000, 5000) }
+    function poll({ now: time, visible = true, quiet = false, busy = false, playing = false, reduced = false }) {
+      if (!visible || quiet || busy) { defer(time); return {} }
+      const result = {}
+      if (!playing && !reduced && time >= nextAction) {
+        result.action = idleActions[actionIndex++ % idleActions.length]
+        nextAction = time + delay(4200, 3500)
+      }
+      if (time >= nextSpeech) {
+        const words = playing ? musicWords : idleWords
+        result.speech = words[wordIndex++ % words.length]
+        nextSpeech = time + delay(playing ? 24000 : 11000, playing ? 12000 : 7000)
+      }
+      return result
+    }
+    return { poll, defer }
+  }
   function mount({ stage, names, syllables, reduced, getMode }) {
     const $ = id => document.getElementById(id)
     const pet = $('music-pet'), home = pet.parentElement, touch = $('pet-touch'), keyboard = $('stage-keyboard'), lane = $('stage-note-lane')
-    const mobile = matchMedia('(max-width: 760px)'), follower = createNoteFollower()
+    const mobile = matchMedia('(max-width: 760px)'), follower = createNoteFollower(), director = createIdleDirector()
     let enabled = true, follow = true, position = null, drag = null, energy = 0, landing = null, reactionUntil = 0, reactionCount = 0, hop, reactionTimer, suppressClick = false, clickTimer
+    let quiet = false, lastPlaying = false, musicPose = 'idle', actionPose = null, actionUntil = 0, actionTimer, idleTimer, lifecycleActive = true, actionManual = false
+    const monologue = $('pet-monologue'), menu = $('pet-menu')
     try {
+      quiet = localStorage.getItem('sonora-pet-quiet') === 'on'
       enabled = localStorage.getItem('sonora-music-pet') !== 'hidden'
       follow = localStorage.getItem('sonora-pet-follow') !== 'off'
       const saved = JSON.parse(localStorage.getItem('sonora-pet-position'))
       if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) position = { x: Math.max(0, Math.min(1, saved.x)), y: Math.max(0, Math.min(1, saved.y)) }
     } catch { /* Optional preferences never block the player. */ }
+    function renderPose() {
+      const action = Date.now() < actionUntil ? actionPose : null
+      const pose = action || (lastPlaying ? musicPose : 'idle')
+      if (pet.dataset.pose !== pose) pet.dataset.pose = pose
+      pet.dataset.playing = String(lastPlaying)
+      pet.classList.toggle('is-idle-alive', enabled && !quiet && !lastPlaying && !reduced.matches && !document.hidden && lifecycleActive)
+    }
+    function perform(action, manual = false) {
+      actionManual = manual; clearTimeout(actionTimer); actionPose = action.pose; actionUntil = Date.now() + action.duration
+      renderPose()
+      actionTimer = setTimeout(() => { actionPose = null; actionUntil = 0; actionManual = false; renderPose() }, action.duration)
+    }
+    function closeMenu() { menu.hidden = true; $('pet-chat').setAttribute('aria-expanded', 'false') }
+    function positionPopup(element, above = true) {
+      const rect = pet.getBoundingClientRect(), box = element.getBoundingClientRect(), deck = document.querySelector('.player').getBoundingClientRect()
+      const ceiling = deck.top > 0 ? deck.top : window.innerHeight
+      const left = Math.max(8, Math.min(window.innerWidth - box.width - 8, rect.left + rect.width / 2 - box.width / 2))
+      const preferred = above && rect.top - box.height - 8 >= 8 ? rect.top - box.height - 8 : rect.bottom + 8
+      element.style.left = `${left}px`; element.style.top = `${Math.max(8, Math.min(ceiling - box.height - 8, preferred))}px`
+    }
+    function setQuiet(value) {
+      quiet = value; pet.classList.toggle('is-quiet', value)
+      $('pet-quiet').setAttribute('aria-pressed', String(value)); $('pet-quiet').textContent = value ? '安静模式 · 开' : '安静模式 · 关'
+      try { localStorage.setItem('sonora-pet-quiet', value ? 'on' : 'off') } catch { /* optional */ }
+      director.defer(Date.now()); clearTimeout(actionTimer); actionUntil = 0; actionPose = null
+      if (value) { monologue.hidden = true; hop?.cancel() }
+      renderPose()
+    }
+    function idleTick() {
+      clearTimeout(idleTimer)
+      if (!lifecycleActive) return
+      const visible = enabled && !document.hidden
+      const result = director.poll({ now: Date.now(), visible, quiet, playing: lastPlaying, reduced: reduced.matches, busy: Boolean(drag) || !menu.hidden || Date.now() < reactionUntil })
+      if (result.action) perform(result.action)
+      if (result.speech) say(result.speech, false, 4800)
+      if (!monologue.hidden && visible) positionPopup(monologue)
+      if (!menu.hidden && visible) positionPopup(menu)
+      idleTimer = setTimeout(idleTick, 800)
+    }
     function viewport() { return { width: window.innerWidth, height: window.innerHeight } }
     function bounds() {
       const size = pet.getBoundingClientRect(), deck = document.querySelector('.player').getBoundingClientRect()
@@ -86,11 +155,11 @@
       if (notify) layout()
     }
     function show(visible, notify = true) {
-      if (!visible) finishDrag()
+      if (!visible) { finishDrag(); closeMenu(); monologue.hidden = true; clearTimeout(actionTimer); actionUntil = 0; actionPose = null }
       enabled = visible; pet.hidden = !visible
       $('pet-toggle').setAttribute('aria-pressed', String(visible)); $('pet-toggle').textContent = `音乐宠物 · ${visible ? '开' : '关'}`
       try { localStorage.setItem('sonora-music-pet', visible ? 'visible' : 'hidden') } catch { /* optional */ }
-      layout()
+      layout(); renderPose()
       if (notify) document.dispatchEvent(new Event('sonora:layout'))
     }
     function resetPosition() {
@@ -99,10 +168,11 @@
       setFollow(true); say('回到舞台啦 ♪'); touch.focus({ preventScroll: true })
       document.dispatchEvent(new Event('sonora:layout'))
     }
-    function say(message, loved = false) {
-      reactionUntil = Date.now() + 1800; $('pet-status').textContent = message; $('pet-status').title = message
+    function say(message, loved = false, duration = 2400) {
+      reactionUntil = Date.now() + duration; $('pet-status').textContent = loved ? '好开心 ♡' : '音符碎碎念 ♪'; $('pet-status').title = message
+      monologue.textContent = message; monologue.hidden = false; positionPopup(monologue)
       pet.classList.toggle('is-loved', loved); clearTimeout(reactionTimer)
-      reactionTimer = setTimeout(() => { pet.classList.remove('is-loved'); reactionUntil = 0; if (!stage.classList.contains('is-playing')) $('pet-status').textContent = '等你放首歌 ♪' }, 1800)
+      reactionTimer = setTimeout(() => { pet.classList.remove('is-loved'); monologue.hidden = true; reactionUntil = 0; if (!lastPlaying) $('pet-status').textContent = quiet ? '安静陪着你 ♡' : '等你放首歌 ♪' }, duration)
     }
     function finishDrag(event) {
       if (!drag || event && event.pointerId !== undefined && event.pointerId !== drag.id) return
@@ -112,6 +182,7 @@
     }
     touch.addEventListener('pointerdown', event => {
       if (event.button !== 0 || event.isPrimary === false || drag) return
+      closeMenu(); monologue.hidden = true; clearTimeout(actionTimer); actionUntil = 0; actionPose = null; director.defer(Date.now())
       const rect = pet.getBoundingClientRect()
       drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top, moved: false }
       touch.setPointerCapture?.(event.pointerId)
@@ -145,6 +216,8 @@
       place({ x: rect.left + move[0] * step, y: rect.top + move[1] * step }); savePosition(); touch.focus(); say('自由活动啦 ♪')
     })
     function update({ energy: nextEnergy = 0, playing, time = 0, analysis }) {
+      lastPlaying = Boolean(playing)
+      if (playing && !actionManual) { clearTimeout(actionTimer); actionUntil = 0; actionPose = null }
       if (!enabled) return
       energy = playing ? energy * .55 + nextEnergy * .45 : 0
       const active = playing && energy > .025, phase = time * 8, motion = reduced.matches || drag?.moved ? 0 : energy
@@ -159,22 +232,34 @@
         if (note === null) { delete pet.dataset.note; if (!playing) hop?.cancel() }
       }
       const pose = reduced.matches || !playing || drag?.moved ? 'idle' : active || note !== null ? Math.floor(time * 3) % 2 ? 'left' : 'right' : 'idle'
-      if (pet.dataset.pose !== pose) pet.dataset.pose = pose
+      musicPose = pose; renderPose()
       if (Date.now() >= reactionUntil && !drag?.moved) {
-        const label = isFollowing() ? note !== null ? `${names[note]} · ${syllables[note]} ♪` : playing ? '等下一颗音符 ♪' : '等你放首歌 ♪' : active ? '跟上节拍 ♪' : playing ? '安静听一会儿 ♡' : '等你放首歌 ♪'
+        const label = isFollowing() ? note !== null ? `${names[note]} · ${syllables[note]} ♪` : playing ? '等下一颗音符 ♪' : '等你放首歌 ♪' : active ? '跟上节拍 ♪' : playing ? '安静听一会儿 ♡' : quiet ? '安静陪着你 ♡' : '等你放首歌 ♪'
         if ($('pet-status').textContent !== label) $('pet-status').textContent = label
       }
     }
+    $('pet-chat').onclick = () => {
+      if (!menu.hidden) { closeMenu(); return }
+      monologue.hidden = true; menu.hidden = false; positionPopup(menu); $('pet-chat').setAttribute('aria-expanded', 'true')
+    }
+    $('pet-talk').onclick = () => { closeMenu(); say(idleWords[reactionCount++ % idleWords.length], false, 4800); perform({ pose: 'wave', duration: 2000 }, true) }
+    $('pet-act').onclick = () => { closeMenu(); const action = idleActions[reactionCount++ % idleActions.length]; perform(action, true); say({ blink: '眨眨眼，看看你。', 'look-left': '左边会有什么呢？', 'look-right': '右边的风景也不错。', stretch: '伸个大大的懒腰！', wave: '嗨，我一直都在。', sleep: '眯一小会儿，马上回来。' }[action.pose], false, 3000) }
+    $('pet-quiet').onclick = () => { setQuiet(!quiet); closeMenu() }
+    document.addEventListener('pointerdown', event => { if (!menu.hidden && !menu.contains(event.target) && !$('pet-chat').contains(event.target)) closeMenu() })
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !menu.hidden) { closeMenu(); $('pet-chat').focus() } })
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { monologue.hidden = true; closeMenu(); hop?.cancel() }; renderPose(); director.defer(Date.now()); idleTick() })
+    window.addEventListener('pagehide', () => { lifecycleActive = false; clearTimeout(idleTimer); clearTimeout(actionTimer); clearTimeout(reactionTimer); clearTimeout(clickTimer); monologue.hidden = true; closeMenu(); hop?.cancel(); renderPose() })
+    window.addEventListener('pageshow', () => { lifecycleActive = true; renderPose(); director.defer(Date.now()); idleTick() })
     $('pet-toggle').onclick = () => show(!enabled); $('pet-hide').onclick = () => show(false)
     $('pet-home').onclick = resetPosition
     $('pet-follow').onclick = () => { if (!enabled) { setFollow(true); show(true) } else setFollow(!follow); document.dispatchEvent(new Event('sonora:layout')) }
     document.addEventListener('sonora:layout', layout); mobile.addEventListener('change', layout)
-    window.addEventListener('resize', layout)
-    reduced.addEventListener('change', () => { hop?.cancel() })
-    setFollow(follow, false); show(enabled, false)
+    window.addEventListener('resize', () => { layout(); if (!menu.hidden) positionPopup(menu); if (!monologue.hidden) positionPopup(monologue) })
+    reduced.addEventListener('change', () => { hop?.cancel(); clearTimeout(actionTimer); actionUntil = 0; actionPose = null; renderPose() })
+    setFollow(follow, false); show(enabled, false); setQuiet(quiet); idleTick()
     return { update, layout, reset: () => { follower.reset(); landing = null; delete pet.dataset.note; hop?.cancel() } }
   }
-  const exported = { clampPosition, createNoteFollower, mount }
+  const exported = { clampPosition, createNoteFollower, createIdleDirector, mount }
   if (typeof module !== 'undefined' && module.exports) module.exports = exported
   else root.SonoraPet = exported
 })(typeof window !== 'undefined' ? window : globalThis)
