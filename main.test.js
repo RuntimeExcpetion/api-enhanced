@@ -287,6 +287,32 @@ describe('player login and private library integration', () => {
       assert.strictEqual((await anonymous.json()).profile, null)
     })
   })
+  it('parses compact cookie headers and falls back from empty request cookies without forwarding the API token', async () => {
+    await withServer('test-token', async (base) => {
+      const headers = {
+        Cookie:
+          'api_token=test-token;MUSIC_U=compact-session;__csrf=csrf-value',
+        'Content-Type': 'application/json',
+      }
+      for (const cookie of ['', {}, null]) {
+        const recent = await fetch(`${base}/record/recent/song`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ cookie }),
+        })
+        assert.strictEqual(recent.status, 200)
+        assert.strictEqual((await recent.json()).account, 'compact-session')
+        const account = await fetch(`${base}/user/account`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ cookie }),
+        })
+        assert.strictEqual(account.status, 200)
+        assert.strictEqual((await account.json()).profile.userId, 123)
+      }
+    })
+  })
+
   it('always reloads cloud recent records and keeps account cookies separate', async () => {
     await withServer('test-token', async (base) => {
       for (const [index, account] of [
