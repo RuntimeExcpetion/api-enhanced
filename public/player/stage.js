@@ -87,10 +87,12 @@
       const green = `hsl(${coverHue} 85% 72%)`, highlight = `hsl(${(coverHue + 65) % 360} 90% 78%)`, count = 128
       context.shadowColor = green; context.shadowBlur = reduced.matches ? 0 : 8 * dpr
       if (mode === 'ring' || mode === 'notes') {
-        const cx = width / 2, cy = height * .49, radius = Math.min(height * .36, width * .30)
+        const cover = $('stage-record').getBoundingClientRect()
+        const cx = width / 2, cy = height / 2, radius = Math.max(cover.width, cover.height) * dpr / 2 + 8 * dpr
+        const maxLength = Math.max(3 * dpr, Math.min(40 * dpr, Math.min(width, height) / 2 - radius - 3 * dpr))
         for (let i = 0; i < count; i++) {
           const bin = Math.floor(4 + (i / count) ** 1.8 * Math.min(bins?.length || 100, 380)), energy = playing && bins ? bins[bin] / 255 : 0
-          const angle = i / count * Math.PI * 2 + (reduced.matches ? 0 : time * .08), length = (3 + energy * 40) * dpr
+          const angle = i / count * Math.PI * 2 + (reduced.matches ? 0 : time * .08), length = 3 * dpr + energy * (maxLength - 3 * dpr)
           context.beginPath(); context.strokeStyle = i % 4 === 0 ? highlight : green; context.lineWidth = 2 * dpr; context.lineCap = 'round'
           context.moveTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius)
           context.lineTo(cx + Math.cos(angle) * (radius + length), cy + Math.sin(angle) * (radius + length)); context.stroke()
