@@ -96,7 +96,7 @@
     function resetPosition() {
       finishDrag(); position = null
       try { localStorage.removeItem('sonora-pet-position') } catch { /* optional */ }
-      setFollow(true); say('回到舞台，喵 ♪'); touch.focus({ preventScroll: true })
+      setFollow(true); say('回到舞台啦 ♪'); touch.focus({ preventScroll: true })
       document.dispatchEvent(new Event('sonora:layout'))
     }
     function say(message, loved = false) {
@@ -108,7 +108,7 @@
       if (!drag || event && event.pointerId !== undefined && event.pointerId !== drag.id) return
       const previous = drag; drag = null; pet.classList.remove('is-dragging')
       if (touch.hasPointerCapture?.(previous.id)) touch.releasePointerCapture(previous.id)
-      if (previous.moved) { const rect = pet.getBoundingClientRect(); place({ x: rect.left, y: rect.top }); savePosition(); say('自由活动，喵 ♪'); clearTimeout(clickTimer); clickTimer = setTimeout(() => { suppressClick = false }, 400) }
+      if (previous.moved) { const rect = pet.getBoundingClientRect(); place({ x: rect.left, y: rect.top }); savePosition(); say('自由活动啦 ♪'); clearTimeout(clickTimer); clickTimer = setTimeout(() => { suppressClick = false }, 400) }
     }
     touch.addEventListener('pointerdown', event => {
       if (event.button !== 0 || event.isPrimary === false || drag) return
@@ -131,7 +131,7 @@
     window.addEventListener('blur', () => finishDrag())
     touch.onclick = () => {
       if (suppressClick) { suppressClick = false; return }
-      const messages = ['摸摸头，最喜欢你啦 ♡', '陪你再听一首 ♪', '这首真好听，喵 ♡']
+      const messages = ['摸摸头，最喜欢你啦 ♡', '陪你再听一首 ♪', '这首真好听 ♡']
       say(messages[reactionCount++ % messages.length], true); jump()
     }
     touch.addEventListener('keydown', event => {
@@ -142,7 +142,7 @@
       event.preventDefault(); event.stopPropagation(); finishDrag()
       const rect = pet.getBoundingClientRect(), step = event.shiftKey ? 32 : 12
       setFollow(false, false); pet.classList.remove('is-following-notes'); home.append(pet); pet.classList.add('is-positioned')
-      place({ x: rect.left + move[0] * step, y: rect.top + move[1] * step }); savePosition(); touch.focus(); say('自由活动，喵 ♪')
+      place({ x: rect.left + move[0] * step, y: rect.top + move[1] * step }); savePosition(); touch.focus(); say('自由活动啦 ♪')
     })
     function update({ energy: nextEnergy = 0, playing, time = 0, analysis }) {
       if (!enabled) return
@@ -158,8 +158,10 @@
         if (note !== null) { pet.dataset.note = names[note]; if (note !== landing) { const animate = landing !== null; landing = note; placeOnKey(note, animate) } }
         if (note === null) { delete pet.dataset.note; if (!playing) hop?.cancel() }
       }
+      const pose = reduced.matches || !playing || drag?.moved ? 'idle' : active || note !== null ? Math.floor(time * 3) % 2 ? 'left' : 'right' : 'idle'
+      if (pet.dataset.pose !== pose) pet.dataset.pose = pose
       if (Date.now() >= reactionUntil && !drag?.moved) {
-        const label = isFollowing() ? note !== null ? `${names[note]} · ${syllables[note]} ♪` : playing ? '等下一颗音符 ♪' : '等你放首歌 ♪' : active ? '跟上节拍，喵 ♪' : playing ? '安静听一会儿 ♡' : '等你放首歌 ♪'
+        const label = isFollowing() ? note !== null ? `${names[note]} · ${syllables[note]} ♪` : playing ? '等下一颗音符 ♪' : '等你放首歌 ♪' : active ? '跟上节拍 ♪' : playing ? '安静听一会儿 ♡' : '等你放首歌 ♪'
         if ($('pet-status').textContent !== label) $('pet-status').textContent = label
       }
     }
