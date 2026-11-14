@@ -18,6 +18,11 @@
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
   let toastTimer
   function toast(message) { $('toast').textContent = message; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 4500) }
+  function paintRange(input) {
+    const min = Number(input.getAttribute('min')) || 0, max = Number(input.getAttribute('max')) || 1
+    const progress = Math.max(0, Math.min(100, (Number(input.value) - min) / Math.max(1, max - min) * 100))
+    input.style.setProperty('--progress', `${progress}%`)
+  }
   function apiError(error) {
     if (error.name === 'AbortError') return '请求超时，请稍后重试。'
     if (error.message === 'Failed to fetch') return '无法连接音乐服务，请检查网络或稍后重试。'
@@ -127,7 +132,7 @@
     if (cover) $('cover-image').src = cover; else $('cover-image').removeAttribute('src')
     document.querySelector('.mini-cover').style.backgroundImage = cover ? `url("${cover.replaceAll('"', '%22')}")` : ''
     document.querySelector('.mini-cover').textContent = cover ? '' : 'S.'
-    $('elapsed').textContent = '0:00'; $('duration').textContent = formatTime(song.duration); $('seek').value = 0; renderTracks()
+    $('elapsed').textContent = '0:00'; $('duration').textContent = formatTime(song.duration); $('seek').value = 0; paintRange($('seek')); renderTracks()
   }
   function lyricPlaceholder(message) { $('lyrics').replaceChildren(); const line = document.createElement('p'); line.className = 'lyric-placeholder'; line.textContent = message; $('lyrics').append(line) }
   async function loadLyrics(song, request) {
@@ -235,12 +240,13 @@
     if (playing && !document.hidden && !reducedMotion.matches) frame = requestAnimationFrame(draw)
   }
   document.addEventListener('sonora:layout', draw)
-  audio.volume = .7
+  audio.volume = .7; paintRange($('volume')); paintRange($('seek'))
   audio.addEventListener('play', updatePlayback); audio.addEventListener('pause', updatePlayback); audio.addEventListener('ended', () => { updatePlayback(); step(1, true) })
   audio.addEventListener('error', () => { if (!audio.getAttribute('src')) return; $('audio-state').textContent = 'UNAVAILABLE'; toast('音频加载失败，可能是播放地址已过期、格式不支持或音频跨域受限。请重试或更换歌曲。') })
   audio.addEventListener('loadedmetadata', () => { $('duration').textContent = formatTime(audio.duration) })
   audio.addEventListener('timeupdate', () => {
     $('elapsed').textContent = formatTime(audio.currentTime); $('seek').value = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.currentTime / audio.duration * 1000 : 0
+    paintRange($('seek'))
     const index = lyricIndex(currentLines, audio.currentTime)
     stage.lyrics(currentLines, index)
     if (index !== activeLyric) { const children = $('lyrics').children; if (children[activeLyric]) children[activeLyric].classList.remove('current'); if (children[index]) { children[index].classList.add('current'); $('lyrics').scrollTo({ top: children[index].offsetTop - $('lyrics').offsetTop - 43, behavior: reducedMotion.matches ? 'instant' : 'smooth' }) } activeLyric = index }
@@ -252,8 +258,8 @@
   $('shuffle').onclick = () => { shuffle = !shuffle; $('shuffle').setAttribute('aria-pressed', shuffle); toast(shuffle ? '已开启随机播放' : '已切换为顺序播放') }
   $('repeat').onclick = () => { repeat = repeat === 'list' ? 'single' : repeat === 'single' ? 'none' : 'list'; const label = { list: '列表循环', single: '单曲循环', none: '播完停止' }[repeat]; $('repeat').setAttribute('aria-label', label); $('repeat').title = label; $('repeat').style.opacity = repeat === 'none' ? '.4' : '1'; $('repeat').innerHTML = repeat === 'single' ? '↻₁' : '<svg><use href="#i-repeat"/></svg>'; toast(label) }
   $('current-favorite').onclick = () => heart(current)
-  $('seek').oninput = () => { if (Number.isFinite(audio.duration) && audio.duration > 0) audio.currentTime = $('seek').value / 1000 * audio.duration }
-  $('volume').oninput = () => { audio.volume = Number($('volume').value); audio.muted = false; $('mute').setAttribute('aria-label', '静音'); $('mute').style.opacity = audio.volume === 0 ? '.4' : '1' }
+  $('seek').oninput = () => { paintRange($('seek')); if (Number.isFinite(audio.duration) && audio.duration > 0) audio.currentTime = $('seek').value / 1000 * audio.duration }
+  $('volume').oninput = () => { paintRange($('volume')); audio.volume = Number($('volume').value); audio.muted = false; $('mute').setAttribute('aria-label', '静音'); $('mute').style.opacity = audio.volume === 0 ? '.4' : '1' }
   $('mute').onclick = () => { audio.muted = !audio.muted; $('mute').setAttribute('aria-label', audio.muted ? '取消静音' : '静音'); $('mute').style.opacity = audio.muted ? '.4' : '1' }
   $('visual-mode').onclick = () => { visualization = visualization === 'bars' ? 'wave' : 'bars'; $('visual-mode').textContent = visualization === 'bars' ? '频谱 ↔ 波形' : '波形 ↔ 频谱'; draw() }
   document.querySelectorAll('[data-view]').forEach((button) => button.onclick = () => { if (button.dataset.view === 'favorites' && account.profile()) capabilities.openLiked().catch(error => toast(error.message)); else changeView(button.dataset.view) })

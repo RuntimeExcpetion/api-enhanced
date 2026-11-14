@@ -88,7 +88,7 @@ test('hidden, quiet and busy companions defer activity without accumulating a bu
     assert.ok(director.poll({ now: 68000 }).speech)
   }
   const director = createIdleDirector({ now: 0, random: () => 0 })
-  assert.equal(director.poll({ now: 6000, playing: true }).action, undefined)
+  assert.ok(director.poll({ now: 6000, playing: true }).action)
   assert.ok(director.poll({ now: 30000, playing: true }).speech)
   const reduced = createIdleDirector({ now: 0, random: () => 0 })
   assert.equal(reduced.poll({ now: 6000, reduced: true }).action, undefined)
@@ -133,8 +133,16 @@ test('expanded motion frames resolve to valid atlas cells and durations, includi
     A.activities.map((activity) => activity.id),
     ['swing', 'slide', 'dance', 'basketball'],
   )
-  for (const activity of A.activities)
-    assert.ok(activity.frames.every((frame) => frame >= 0 && frame <= 2))
+  const { plans } = require('../public/player/pet-play')
+  for (const activity of A.activities) {
+    assert.ok(activity.duration >= 3800)
+    assert.ok(
+      plans[activity.id].every(
+        (plan) =>
+          plan.frames.length >= 3 && plan.duration === activity.duration,
+      ),
+    )
+  }
 })
 test('random action bags avoid repeats until exhausted and do not repeat at a bag boundary', () => {
   const A = require('../public/player/pet-actions'),
@@ -147,4 +155,19 @@ test('random action bags avoid repeats until exhausted and do not repeat at a ba
       new Set(all.slice(i * A.actions.length, (i + 1) * A.actions.length)).size,
       A.actions.length,
     )
+})
+
+test('all routine actions also rotate automatically while music is playing', () => {
+  const { createIdleDirector } = require('../public/player/pet')
+  const { actions } = require('../public/player/pet-actions')
+  const director = createIdleDirector({ now: 0, random: () => 0.25 }),
+    seen = []
+  let now = 1800
+  for (let i = 0; i < actions.length; i++) {
+    const result = director.poll({ now, playing: true })
+    assert.ok(result.action)
+    seen.push(result.action.pose)
+    now += result.action.duration + 5000
+  }
+  assert.equal(new Set(seen).size, actions.length)
 })
