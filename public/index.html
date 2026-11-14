@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#f6f5f0"><meta name="description" content="拾音 · 发现音乐，跟随声音的形状。支持网易云音乐搜索、同步歌词与实时频谱。">
   <title>拾音 SONORA · 可视化音乐播放器</title>
   <link rel="stylesheet" href="/player/style.css">
-  <script src="/player/core.js" defer></script><script src="/player/account.js" defer></script><script src="/player/download-engine.js" defer></script><script src="/player/download.js" defer></script><script src="/player/visual-core.js" defer></script><script src="/player/capabilities.js" defer></script><script src="/player/layout.js" defer></script><script src="/player/stage.js" defer></script><script src="/player/app.js" defer></script>
+  <script src="/player/core.js" defer></script><script src="/player/account.js" defer></script><script src="/player/download-engine.js" defer></script><script src="/player/download.js" defer></script><script src="/player/visual-core.js" defer></script><script src="/player/capabilities.js" defer></script><script src="/player/layout.js" defer></script><script src="/player/pet.js" defer></script><script src="/player/stage.js" defer></script><script src="/player/app.js" defer></script>
 </head>
 <body class="sidebar-collapsed">
   <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -66,7 +66,7 @@
         <div class="stage-transport"><button id="stage-like" class="icon-button" aria-label="喜欢当前歌曲" aria-pressed="false"><svg><use href="#i-heart"/></svg></button><button id="stage-previous" class="icon-button prev" aria-label="上一首"><svg><use href="#i-next"/></svg></button><button id="stage-play" class="play-button" aria-label="播放"><svg><use href="#i-play"/></svg></button><button id="stage-next" class="icon-button" aria-label="下一首"><svg><use href="#i-next"/></svg></button><button id="stage-download" class="icon-button" aria-label="下载当前歌曲"><svg><use href="#i-download"/></svg></button><button id="stage-more" class="icon-button" aria-label="歌曲更多操作"><svg><use href="#i-more"/></svg></button></div>
         <div id="stage-lyrics" class="stage-lyrics" aria-label="当前歌词"><p></p><p>让旋律，替你说话。</p><p></p></div>
         <div class="visual-mode-tabs" role="group" aria-label="音乐可视化方式"><button data-visual-mode="ring" aria-pressed="true">星环律动</button><button data-visual-mode="bars" aria-pressed="false">动态频谱</button><button data-visual-mode="wave" aria-pressed="false">声音波形</button><button data-visual-mode="notes" aria-pressed="false">十二音级</button></div>
-        <div class="stage-tone-info"><strong id="stage-note">等待声音</strong><span id="stage-frequency">音级能量</span></div><div id="stage-keyboard" class="stage-keyboard" hidden></div><p id="stage-note-help" class="stage-note-help" hidden>按实际频率映射十二音级，亮度随能量变化。</p>
+        <div class="stage-tone-info"><strong id="stage-note">等待声音</strong><span id="stage-frequency">音级能量</span></div><section id="stage-note-playground" class="stage-note-playground" aria-label="小猫音级跳跃" hidden><header class="note-playground-top"><span>音级跳跃 <small>FOLLOW THE NOTES</small></span><button id="pet-follow" class="outline-button" aria-pressed="true">跟随音级 · 开</button></header><div id="stage-note-lane" class="stage-note-lane"><div id="stage-keyboard" class="stage-keyboard" hidden></div></div></section><p id="stage-note-help" class="stage-note-help" hidden>小猫跟随稳定的主要音级跳跃；和弦与伴奏会影响判断，并非逐音符识谱。拖走可自由活动，点击“跟随音级”即可回来。</p>
       </section>
       <section class="hero" id="hero" aria-label="音乐试听" hidden>
         <div class="hero-copy"><div class="pill"><span></span> 声音的另一种模样</div><h2>让音乐，<br>有迹可循<span>。</span></h2><p>每一个音符，都有自己的形状。<br>戴上耳机，走进属于你的声音宇宙。</p><button id="hero-play" class="primary-button"><svg><use href="#i-play"/></svg>开启试听 <span>↗</span></button><small>原创氛围音 · 实时音频可视化</small></div>
@@ -99,9 +99,9 @@
     <div class="headphone-note">◉ &nbsp; 戴上耳机，听见更多细节</div>
   </aside>
   <aside id="music-pet" class="music-pet" aria-label="音乐宠物：音符小猫">
-    <div class="pet-bubble"><span id="pet-status">等你放首歌 ♪</span><button id="pet-hide" aria-label="隐藏音乐宠物" title="隐藏音乐宠物">×</button></div>
-    <div class="pet-scene" aria-hidden="true"><span class="pet-spark spark-one">✦</span><span class="pet-spark spark-two">♪</span><span class="pet-shadow"></span>
-      <svg class="pet-character" viewBox="0 0 160 168" xmlns="http://www.w3.org/2000/svg">
+    <div class="pet-bubble"><span id="pet-status">等你放首歌 ♪</span><button id="pet-home" aria-label="宠物归位并恢复音级跟随" title="归位 / 重新跟随音级">↶</button><button id="pet-hide" aria-label="隐藏音乐宠物" title="隐藏音乐宠物">×</button></div>
+    <button id="pet-touch" class="pet-scene" type="button" aria-label="摸摸音符小猫；拖动可移动，方向键微调，Home 键归位" title="点我摸摸头 · 按住拖动 · 方向键移动"><span class="pet-love" aria-hidden="true">♡</span><span class="pet-spark spark-one">✦</span><span class="pet-spark spark-two">♪</span><span class="pet-shadow"></span>
+      <svg aria-hidden="true" class="pet-character" viewBox="0 0 160 168" xmlns="http://www.w3.org/2000/svg">
         <defs><linearGradient id="pet-fur" x2=".8" y2="1"><stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#7c66d8"/></linearGradient><linearGradient id="pet-headphones" x2="1" y2="1"><stop stop-color="#9dfbe0"/><stop offset="1" stop-color="#52c9e3"/></linearGradient></defs>
         <g class="pet-tail"><path d="M111 132 Q153 142 142 108" fill="none" stroke="#a694ef" stroke-width="12"/></g>
         <g class="pet-body"><ellipse cx="80" cy="126" rx="29" ry="30" fill="url(#pet-fur)"/><ellipse cx="80" cy="129" rx="15" ry="19" fill="#e1d9ff"/><path d="M72 126v13l13-5v-16l-13 4" fill="#7460bf" stroke="none"/>
@@ -113,8 +113,8 @@
           <g class="pet-eyes"><path d="M55 72q6-10 12 0m26 0q6-10 12 0" fill="none" stroke="#30254f" stroke-width="4"/></g><ellipse cx="52" cy="81" rx="8" ry="4" fill="#f5aacd" opacity=".7"/><ellipse cx="108" cy="81" rx="8" ry="4" fill="#f5aacd" opacity=".7"/><path d="m76 79 4 4 4-4m-4 4q-7 9-11 1m11-1q7 9 11 1" fill="none" stroke="#4b386b" stroke-width="2.5"/>
         </g>
       </svg>
-    </div>
-    <span class="pet-name">音符 <span>YOUR MUSIC BUDDY</span></span>
+    </button>
+    <span class="pet-name">音符 <span>点点我 · 拖动我</span></span>
   </aside>
   <footer class="player" aria-label="播放控制">
     <button class="mini-track" id="mini-details" aria-controls="details-panel" aria-expanded="false" aria-label="展开当前歌曲详情" title="展开当前歌曲详情"><div class="mini-cover">S.</div><div><strong id="mini-title">微光 · First Light</strong><small id="mini-artist">SONORA · 原创合成试听</small></div><span class="mini-expand" aria-hidden="true">⌃</span></button>
