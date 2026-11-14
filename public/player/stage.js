@@ -72,7 +72,7 @@
       const canvas = $('stage-canvas'), context = canvas.getContext('2d')
       if (!context) return
       const rect = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2)
-      const width = Math.max(300, Math.round(rect.width * dpr)), height = Math.max(160, Math.round(rect.height * dpr))
+      const width = Math.max(1, Math.round(rect.width * dpr)), height = Math.max(1, Math.round(rect.height * dpr))
       if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height }
       context.clearRect(0, 0, width, height)
       smoothed = smoothed.map((value, i) => .78 * value + .22 * analysis.values[i])
@@ -84,8 +84,8 @@
         $('stage-frequency').textContent = playing && analysis.frequency ? `${Math.round(analysis.frequency)} Hz · 峰值频率` : '音级能量'
         lastLabels = Date.now()
       }
-      const green = `hsl(${coverHue} 85% 72%)`, highlight = `hsl(${(coverHue + 65) % 360} 90% 78%)`, count = 128
-      context.shadowColor = green; context.shadowBlur = reduced.matches ? 0 : 8 * dpr
+      const green = `hsl(${coverHue} 60% 76%)`, highlight = `hsl(${(coverHue + 45) % 360} 65% 83%)`, count = 128
+      context.shadowColor = green; context.shadowBlur = reduced.matches ? 0 : 3 * dpr
       if (mode === 'ring' || mode === 'notes') {
         const cover = $('stage-record').getBoundingClientRect()
         const cx = width / 2, cy = height / 2, radius = Math.max(cover.width, cover.height) * dpr / 2 + 8 * dpr
@@ -107,9 +107,9 @@
         }
         context.stroke()
       } else {
-        const gap = 4 * dpr, barWidth = (width - gap * (count - 1)) / count
-        for (let i = 0; i < count; i++) {
-          const bin = Math.floor(2 + (Math.abs(i - count / 2) / (count / 2)) ** 1.5 * 180), energy = playing && bins ? bins[bin] / 255 : 0
+        const bars = Math.max(12, Math.min(96, Math.floor(width / (5 * dpr)))), gap = 3 * dpr, barWidth = (width - gap * (bars - 1)) / bars
+        for (let i = 0; i < bars; i++) {
+          const bin = Math.floor(2 + (Math.abs(i - bars / 2) / (bars / 2)) ** 1.5 * 180), energy = playing && bins ? bins[bin] / 255 : 0
           const h = Math.max(2 * dpr, energy * height * .52)
           context.fillStyle = i % 3 === 0 ? highlight : green; context.globalAlpha = .65; context.fillRect(i * (barWidth + gap), height - h - 3 * dpr, Math.max(1, barWidth), h)
         }

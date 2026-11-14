@@ -54,10 +54,10 @@
     } }
   }
   const activities = [
-    { id:'swing', label:'荡秋千', text:'抓紧绳子，轻轻荡起来！', column:0, frames:[0,1,2,1], delay:650 },
-    { id:'slide', label:'滑滑梯', text:'准备——出发！咻！', column:1, frames:[0,0,1,2,2], delay:650 },
-    { id:'dance', label:'跳跳舞', text:'左一步，转个圈，再右一步。', column:2, frames:[0,1,2,1], delay:400 },
-    { id:'basketball', label:'打篮球', text:'运球，瞄准，投篮！', column:3, frames:[0,0,1,2,2], delay:550 },
+    { id:'swing', label:'荡秋千', text:'抓紧绳子，轻轻荡起来。', duration:4800 },
+    { id:'slide', label:'滑滑梯', text:'慢慢滑下去，稳稳落地。', duration:8200 },
+    { id:'dance', label:'跳跳舞', text:'跟着旋律，轻轻摇摆。', duration:3800 },
+    { id:'basketball', label:'打篮球', text:'运球，瞄准，再投篮。', duration:7200 },
   ]
   const exported={sheets,poses,actions,activities,createActionPicker}
   if(typeof module!=='undefined'&&module.exports)module.exports=exported;else root.SonoraPetActions=exported
