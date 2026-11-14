@@ -101,6 +101,6 @@
     }
   })
   mobile.addEventListener('change', () => { closeDrawers(false); focused = false; render() })
-  window.SonoraLayout = { setStage(active) { stageActive = active; if (active) mobileNavigation = mobileDetails = false; render() }, setView(next) { view = next; closeDrawers(false); render() } }
+  window.SonoraLayout = { setStage(active) { stageActive = active; document.body.classList.toggle('stage-active', active); if (active) mobileNavigation = mobileDetails = false; render() }, setView(next) { view = next; closeDrawers(false); render() } }
   render()
 })()

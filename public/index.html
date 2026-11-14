@@ -60,9 +60,9 @@
     <main>
       <div class="section-top"><div><p class="eyebrow">A LITTLE SOUND, A LITTLE ESCAPE</p><h1 id="page-title">今天，想听点什么？</h1></div><button id="hero-toggle" class="text-button story-toggle" aria-controls="hero" aria-expanded="false">展开音乐故事 <span aria-hidden="true">↗</span></button></div>
       <section id="listening-stage" hidden aria-label="中央播放舞台">
-        <header class="stage-top"><span>NOW PLAYING / 正在聆听</span><button id="stage-list" class="outline-button"><svg><use href="#i-list"/></svg>返回歌曲列表</button></header>
-        <div class="stage-art"><canvas id="stage-canvas" aria-label="真实音频频谱与音级可视化"></canvas><div id="stage-record" class="stage-record"><div class="stage-cover-placeholder">S<span>SONORA SESSIONS</span></div><img id="stage-cover-image" alt="当前歌曲封面" hidden></div></div>
-        <div class="stage-song"><h2 id="stage-title">微光 · First Light</h2><p id="stage-artist">SONORA</p><small id="stage-album"></small></div>
+        <div class="stage-atmosphere" aria-hidden="true"><img id="stage-atmosphere-image" alt="" hidden><span class="stage-orb orb-a"></span><span class="stage-orb orb-b"></span><span class="stage-grid"></span></div><header class="stage-top"><span><i class="stage-live-dot"></i> SONORA <b>LIVE SESSION</b></span><div class="stage-top-actions"><button id="pet-toggle" class="outline-button" aria-pressed="true" aria-controls="music-pet">音乐宠物 · 开</button><button id="stage-list" class="outline-button"><svg><use href="#i-list"/></svg>返回歌曲列表</button></div></header>
+        <div class="stage-art"><span class="stage-orbit orbit-near" aria-hidden="true"></span><span class="stage-orbit orbit-far" aria-hidden="true"></span><span class="stage-art-caption" aria-hidden="true">FEEL THE FREQUENCY</span><canvas id="stage-canvas" aria-label="真实音频频谱与音级可视化"></canvas><div id="stage-record" class="stage-record"><div class="stage-cover-placeholder">S<span>SONORA SESSIONS</span></div><img id="stage-cover-image" alt="当前歌曲封面" hidden></div></div>
+        <div class="stage-song"><span class="stage-kicker">此刻，只管沉浸</span><h2 id="stage-title">微光 · First Light</h2><p id="stage-artist">SONORA</p><small id="stage-album"></small></div>
         <div class="stage-transport"><button id="stage-like" class="icon-button" aria-label="喜欢当前歌曲" aria-pressed="false"><svg><use href="#i-heart"/></svg></button><button id="stage-previous" class="icon-button prev" aria-label="上一首"><svg><use href="#i-next"/></svg></button><button id="stage-play" class="play-button" aria-label="播放"><svg><use href="#i-play"/></svg></button><button id="stage-next" class="icon-button" aria-label="下一首"><svg><use href="#i-next"/></svg></button><button id="stage-download" class="icon-button" aria-label="下载当前歌曲"><svg><use href="#i-download"/></svg></button><button id="stage-more" class="icon-button" aria-label="歌曲更多操作"><svg><use href="#i-more"/></svg></button></div>
         <div id="stage-lyrics" class="stage-lyrics" aria-label="当前歌词"><p></p><p>让旋律，替你说话。</p><p></p></div>
         <div class="visual-mode-tabs" role="group" aria-label="音乐可视化方式"><button data-visual-mode="ring" aria-pressed="true">星环律动</button><button data-visual-mode="bars" aria-pressed="false">动态频谱</button><button data-visual-mode="wave" aria-pressed="false">声音波形</button><button data-visual-mode="notes" aria-pressed="false">十二音级</button></div>
@@ -97,6 +97,24 @@
     <div class="visualizer-header"><span><i></i> 实时频谱</span><button class="text-button" id="visual-mode">频谱 ↔ 波形</button></div><canvas id="visualizer" width="600" height="180" aria-label="随当前音频变化的频谱"></canvas><p class="visual-hint" id="visual-hint">点击播放，让声音有迹可循</p>
     <div class="lyric-heading"><span>歌词</span><span>LYRICS</span></div><div id="lyrics" class="lyrics" aria-label="同步歌词"><p class="lyric-placeholder">纯音乐，让旋律替你说话。</p></div>
     <div class="headphone-note">◉ &nbsp; 戴上耳机，听见更多细节</div>
+  </aside>
+  <aside id="music-pet" class="music-pet" aria-label="音乐宠物：音符小猫">
+    <div class="pet-bubble"><span id="pet-status">等你放首歌 ♪</span><button id="pet-hide" aria-label="隐藏音乐宠物" title="隐藏音乐宠物">×</button></div>
+    <div class="pet-scene" aria-hidden="true"><span class="pet-spark spark-one">✦</span><span class="pet-spark spark-two">♪</span><span class="pet-shadow"></span>
+      <svg class="pet-character" viewBox="0 0 160 168" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="pet-fur" x2=".8" y2="1"><stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#7c66d8"/></linearGradient><linearGradient id="pet-headphones" x2="1" y2="1"><stop stop-color="#9dfbe0"/><stop offset="1" stop-color="#52c9e3"/></linearGradient></defs>
+        <g class="pet-tail"><path d="M111 132 Q153 142 142 108" fill="none" stroke="#a694ef" stroke-width="12"/></g>
+        <g class="pet-body"><ellipse cx="80" cy="126" rx="29" ry="30" fill="url(#pet-fur)"/><ellipse cx="80" cy="129" rx="15" ry="19" fill="#e1d9ff"/><path d="M72 126v13l13-5v-16l-13 4" fill="#7460bf" stroke="none"/>
+          <g class="pet-arm arm-left"><path d="M57 116 Q36 113 35 98" fill="none" stroke="#ae9bed" stroke-width="13"/><circle cx="35" cy="98" r="7" fill="#d1c2ff"/></g><g class="pet-arm arm-right"><path d="M103 116 Q124 113 125 98" fill="none" stroke="#9b86e1" stroke-width="13"/><circle cx="125" cy="98" r="7" fill="#d1c2ff"/></g>
+          <ellipse class="pet-foot foot-left" cx="62" cy="151" rx="15" ry="8" fill="#b8a6ef"/><ellipse class="pet-foot foot-right" cx="98" cy="151" rx="15" ry="8" fill="#9c87de"/>
+        </g>
+        <g class="pet-head"><path d="M40 69 37 20 Q39 13 46 20L65 37Q80 32 95 37L114 20Q121 13 123 22L120 69Z" fill="url(#pet-fur)" stroke="#d3c6ff" stroke-width="2"/><path d="m46 30 3 25 13-10ZM113 30l-3 25-13-10Z" fill="#f7b5d4" stroke="none"/><ellipse cx="80" cy="72" rx="44" ry="36" fill="url(#pet-fur)" stroke="#d3c6ff" stroke-width="2"/>
+          <path d="M35 66Q34 24 80 24t45 42" fill="none" stroke="#6ef1d5" stroke-width="8"/><rect x="28" y="60" width="14" height="29" rx="6" fill="url(#pet-headphones)"/><rect x="118" y="60" width="14" height="29" rx="6" fill="url(#pet-headphones)"/>
+          <g class="pet-eyes"><path d="M55 72q6-10 12 0m26 0q6-10 12 0" fill="none" stroke="#30254f" stroke-width="4"/></g><ellipse cx="52" cy="81" rx="8" ry="4" fill="#f5aacd" opacity=".7"/><ellipse cx="108" cy="81" rx="8" ry="4" fill="#f5aacd" opacity=".7"/><path d="m76 79 4 4 4-4m-4 4q-7 9-11 1m11-1q7 9 11 1" fill="none" stroke="#4b386b" stroke-width="2.5"/>
+        </g>
+      </svg>
+    </div>
+    <span class="pet-name">音符 <span>YOUR MUSIC BUDDY</span></span>
   </aside>
   <footer class="player" aria-label="播放控制">
     <button class="mini-track" id="mini-details" aria-controls="details-panel" aria-expanded="false" aria-label="展开当前歌曲详情" title="展开当前歌曲详情"><div class="mini-cover">S.</div><div><strong id="mini-title">微光 · First Light</strong><small id="mini-artist">SONORA · 原创合成试听</small></div><span class="mini-expand" aria-hidden="true">⌃</span></button>
