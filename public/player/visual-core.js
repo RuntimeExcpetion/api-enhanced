@@ -116,10 +116,15 @@
     }
     return [...unique.values()].sort((a,b)=>b.playedAt-a.playedAt)
   }
+  function recentSummary(result,songs){
+    const list=result?.data?.list||result?.list||[],returned=Array.isArray(list)?list.length:0
+    const count=result?.data?.total??result?.total,total=Number.isInteger(Number(count))&&count!==null&&count!==undefined&&Number(count)>=0?Number(count):null
+    return {returned,displayed:songs.length,total}
+  }
   function recentTime(time,timeZone){
     if(!Number.isFinite(time)||time<=0)return '未提供播放时间'
     return new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',...(timeZone?{timeZone}:{})}).format(new Date(time))
   }
-  const exported={recentSongs,recentTime,labels,hidden,spec,unwrap,records,kind,display,picture,resourceValue,extractSongs,redacted,payload}
+  const exported={recentSongs,recentSummary,recentTime,labels,hidden,spec,unwrap,records,kind,display,picture,resourceValue,extractSongs,redacted,payload}
   if(typeof module!=='undefined'&&module.exports)module.exports=exported;else root.SonoraVisual=exported
 })(typeof window!=='undefined'?window:globalThis)

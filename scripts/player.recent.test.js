@@ -81,3 +81,33 @@ test('recent time formatting supports missing times, epoch seconds and explicit 
   assert.match(recentTime(1700000000000, 'Asia/Shanghai'), /2023/)
   assert.equal(recentTime(0), '未提供播放时间')
 })
+
+test('recent summary distinguishes raw server count, unique songs and upstream total', () => {
+  const { recentSummary } = require('../public/player/visual-core')
+  const result = {
+    data: {
+      total: 100,
+      list: [
+        { data: { id: 1, name: 'Song' } },
+        { data: { id: 1, name: 'Song' } },
+        null,
+      ],
+    },
+  }
+  assert.deepEqual(recentSummary(result, recentSongs(result, normalizeSong)), {
+    returned: 3,
+    displayed: 1,
+    total: 100,
+  })
+  const fourteen = {
+    data: {
+      list: Array.from({ length: 14 }, (_, id) => ({
+        data: { id, name: 'Song ' + id },
+      })),
+    },
+  }
+  assert.deepEqual(
+    recentSummary(fourteen, recentSongs(fourteen, normalizeSong)),
+    { returned: 14, displayed: 14, total: null },
+  )
+})

@@ -5,8 +5,8 @@
   <meta name="theme-color" content="#f6f5f0"><meta name="description" content="拾音 · 发现音乐，跟随声音的形状。支持网易云音乐搜索、同步歌词与实时频谱。">
   <title>拾音 SONORA · 可视化音乐播放器</title>
   <link rel="stylesheet" href="/player/style.css">
-  <link rel="preload" as="image" href="/player/assets/blue-maid-sprites.png">
-  <script src="/player/core.js" defer></script><script src="/player/account.js" defer></script><script src="/player/download-engine.js" defer></script><script src="/player/download.js" defer></script><script src="/player/visual-core.js" defer></script><script src="/player/capabilities.js" defer></script><script src="/player/layout.js" defer></script><script src="/player/pet.js" defer></script><script src="/player/stage.js" defer></script><script src="/player/app.js" defer></script>
+  <link rel="preload" as="image" href="/player/assets/blue-maid-sprites.png?v=life2">
+  <script src="/player/core.js" defer></script><script src="/player/account.js" defer></script><script src="/player/download-engine.js" defer></script><script src="/player/download.js" defer></script><script src="/player/visual-core.js" defer></script><script src="/player/capabilities.js" defer></script><script src="/player/layout.js" defer></script><script src="/player/pet-actions.js" defer></script><script src="/player/pet.js" defer></script><script src="/player/stage.js" defer></script><script src="/player/app.js" defer></script>
 </head>
 <body class="sidebar-collapsed">
   <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -100,12 +100,14 @@
     <div class="headphone-note">◉ &nbsp; 戴上耳机，听见更多细节</div>
   </aside>
   <aside id="music-pet" class="music-pet" aria-label="音乐宠物：蓝发女仆音符">
-    <div class="pet-bubble"><span id="pet-status">等你放首歌 ♪</span><button id="pet-home" aria-label="宠物归位并恢复音级跟随" title="归位 / 重新跟随音级">↶</button><button id="pet-hide" aria-label="隐藏音乐宠物" title="隐藏音乐宠物">×</button></div>
-    <button id="pet-touch" class="pet-scene" type="button" aria-label="摸摸音乐宠物音符；拖动可移动，方向键微调，Home 键归位" title="点我摸摸头 · 按住拖动 · 方向键移动"><span class="pet-love" aria-hidden="true">♡</span><span class="pet-spark spark-one">✦</span><span class="pet-spark spark-two">♪</span><span class="pet-shadow"></span>
+    <div class="pet-bubble"><span id="pet-status">等你放首歌 ♪</span><button id="pet-chat" aria-label="宠物互动" title="聊天、表演与安静模式" aria-controls="pet-menu" aria-expanded="false">⋯</button><button id="pet-home" aria-label="宠物归位并恢复音级跟随" title="归位 / 重新跟随音级">↶</button><button id="pet-hide" aria-label="隐藏音乐宠物" title="隐藏音乐宠物">×</button></div>
+    <button id="pet-touch" class="pet-scene" type="button" aria-label="摸摸音乐宠物音符；拖动可移动，方向键微调，Home 键归位" title="点我摸摸头 · 按住拖动 · 方向键移动"><span class="pet-zzz" aria-hidden="true">Z z</span><span class="pet-love" aria-hidden="true">♡</span><span class="pet-spark spark-one">✦</span><span class="pet-spark spark-two">♪</span><span class="pet-shadow"></span>
       <span class="pet-character pet-sprite" aria-hidden="true"></span>
     </button>
     <span class="pet-name">音符 <span>点点我 · 拖动我</span></span>
   </aside>
+  <div id="pet-monologue" class="pet-monologue" role="status" hidden></div><div id="pet-menu" class="pet-menu" role="group" aria-label="宠物互动" hidden><button id="pet-talk">陪我聊聊</button><button id="pet-act">随机表演</button><button id="pet-quiet" aria-pressed="false">安静模式 · 关</button><button id="pet-choose" aria-expanded="false" aria-controls="pet-move-picker">选择动作</button><div id="pet-move-picker" class="pet-move-picker" hidden></div><div class="pet-menu-label">小小游乐场</div><div id="pet-play-choices" class="pet-play-choices"></div></div>
+  <section id="pet-playground" class="pet-playground" aria-label="音符的小小游乐场" hidden><header><div><small>SONORA PLAYTIME</small><h2 id="pet-play-title">小小游乐场</h2></div><button id="pet-play-close" aria-label="结束表演并回到原处">×</button></header><div id="pet-play-scene" class="pet-play-scene" role="img" aria-label="音符与游乐场道具的逐帧表演"></div><p id="pet-play-text"></p><div class="pet-play-controls"><button id="pet-play-pause" aria-pressed="false">暂停表演</button><button id="pet-play-next">下一步</button></div><div id="pet-play-tabs" class="pet-play-tabs" role="group" aria-label="选择游乐场活动"></div></section>
   <footer class="player" aria-label="播放控制">
     <button class="mini-track" id="mini-details" aria-controls="details-panel" aria-expanded="false" aria-label="展开当前歌曲详情" title="展开当前歌曲详情"><div class="mini-cover">S.</div><div><strong id="mini-title">微光 · First Light</strong><small id="mini-artist">SONORA · 原创合成试听</small></div><span class="mini-expand" aria-hidden="true">⌃</span></button>
     <div class="transport"><div class="transport-buttons"><button class="icon-button" id="shuffle" aria-label="随机播放" aria-pressed="false">⤨</button><button class="icon-button prev" id="previous" aria-label="上一首"><svg><use href="#i-next"/></svg></button><button class="play-button" id="play" aria-label="播放"><svg><use href="#i-play"/></svg></button><button class="icon-button" id="next" aria-label="下一首"><svg><use href="#i-next"/></svg></button><button class="icon-button" id="repeat" aria-label="列表循环" title="列表循环"><svg><use href="#i-repeat"/></svg></button></div><div class="timeline"><span id="elapsed">0:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="播放进度"><span id="duration">0:16</span></div></div>
