@@ -1,9 +1,9 @@
 {
   "source": "/docs/home.md",
-  "sourceHash": "9b816efcf343f86713ab02f8c0681ada8309054dfe408db219a3e5aab8682797",
-  "moduleCount": 431,
-  "documentedCount": 392,
-  "supportedCount": 435,
+  "sourceHash": "2e603a6bf6d113399549081333dd72e43ff4fdbe96806ef304e4b6ac6dc8543f",
+  "moduleCount": 459,
+  "documentedCount": 419,
+  "supportedCount": 463,
   "endpoints": [
     {
       "route": "/broadcast/category/region/get",
@@ -160,6 +160,19 @@
       "params": [],
       "supported": true,
       "module": "dj_category_excludehot.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/dj/category/list",
+      "title": "电台 - 分类列表(新版)",
+      "category": "电台与播客",
+      "documented": true,
+      "description": "调用此接口 , 可获得新版客户端的播客分类树 , 返回一级分类及其下全部子分类 , 无需登录",
+      "documentation": "说明 : 调用此接口 , 可获得新版客户端的播客分类树 , 返回一级分类及其下全部子分类 , 无需登录\n\n**接口地址 :** `/dj/category/list`\n\n**调用例子 :** `/dj/category/list`",
+      "params": [],
+      "supported": true,
+      "module": "dj_category_list.js",
       "mutating": false,
       "upload": false
     },
@@ -970,20 +983,20 @@
       "title": "播客上传声音",
       "category": "电台与播客",
       "documented": true,
-      "description": "可以上传声音到播客,例子在 /public/voice_upload.html 访问地址: <a href=\"/voice_upload.html\" target=\"_blank\">/voice_upload.html</a>",
-      "documentation": "说明: 可以上传声音到播客,例子在 `/public/voice_upload.html` 访问地址: <a href=\"/voice_upload.html\" target=\"_blank\">/voice_upload.html</a>\n\n**接口地址:** `/voice/upload`\n\n**必选参数：**\n`voiceListId`: 播客 id\n\n`coverImgId`: 播客封面\n\n`categoryId`: 分类 id\n\n`secondCategoryId`:次级分类 id\n\n`description`: 声音介绍\n\n**可选参数：**\n`songName`: 声音名称\n\n`privacy`: 设为隐私声音,播客如果是隐私博客,则必须设为 1\n\n`publishTime`:默认立即发布,定时发布的话需传入时间戳\n\n`autoPublish`: 是否发布动态,是则传入 1\n\n`autoPublishText`: 动态文案\n\n`orderNo`: 排序,默认为 1\n\n`composedSongs`: 包含歌曲(歌曲 id),多个用逗号隔开",
+      "description": "登录后调用此接口,使用'Content-Type': 'multipart/form-data'上传声音文件 formData(name 为songFile),可通过 formData(name 为imgFile)同时上传声音封面。例子在 /public/voice_upload.html 访问地址: <a href=\"/voice_upload.html\" target=\"_blank\">/voice_upload.html</a>",
+      "documentation": "说明: 登录后调用此接口,使用`'Content-Type': 'multipart/form-data'`上传声音文件 formData(name 为`songFile`),可通过 formData(name 为`imgFile`)同时上传声音封面。例子在 `/public/voice_upload.html` 访问地址: <a href=\"/voice_upload.html\" target=\"_blank\">/voice_upload.html</a>\n\n**接口地址:** `/voice/upload`\n\n**必选参数：**\n\n`songFile`: 声音文件\n\n`voiceListId`: 播客 id\n\n`categoryId`: 分类 id\n\n`secondCategoryId`: 次级分类 id\n\n`description`: 声音介绍\n\n**可选参数：**\n\n`imgFile`: 声音封面图片文件,上传后会自动生成图片 id。与`coverImgId`同时传入时,优先使用`imgFile`\n\n`coverImgId`: 已上传的声音封面图片 id,未传入`imgFile`时使用该值\n\n`songName`: 声音名称\n\n`privacy`: 设为隐私声音,播客如果是隐私播客,则必须设为 1\n\n`publishTime`: 默认立即发布,定时发布的话需传入时间戳\n\n`autoPublish`: 是否发布动态,是则传入 1\n\n`autoPublishText`: 动态文案\n\n`orderNo`: 排序,默认为 1\n\n`composedSongs`: 包含歌曲(歌曲 id),多个用逗号隔开",
       "params": [
+        {
+          "name": "songFile",
+          "required": true,
+          "description": "声音文件",
+          "file": true,
+          "sensitive": false
+        },
         {
           "name": "voiceListId",
           "required": true,
           "description": "播客 id",
-          "file": false,
-          "sensitive": false
-        },
-        {
-          "name": "coverImgId",
-          "required": true,
-          "description": "播客封面",
           "file": false,
           "sensitive": false
         },
@@ -1009,6 +1022,20 @@
           "sensitive": false
         },
         {
+          "name": "imgFile",
+          "required": false,
+          "description": "声音封面图片文件,上传后会自动生成图片 id。与",
+          "file": true,
+          "sensitive": false
+        },
+        {
+          "name": "coverImgId",
+          "required": false,
+          "description": "已上传的声音封面图片 id,未传入",
+          "file": false,
+          "sensitive": false
+        },
+        {
           "name": "songName",
           "required": false,
           "description": "声音名称",
@@ -1018,7 +1045,7 @@
         {
           "name": "privacy",
           "required": false,
-          "description": "设为隐私声音,播客如果是隐私博客,则必须设为 1",
+          "description": "设为隐私声音,播客如果是隐私播客,则必须设为 1",
           "file": false,
           "sensitive": false
         },
@@ -1055,13 +1082,6 @@
           "required": false,
           "description": "包含歌曲(歌曲 id),多个用逗号隔开",
           "file": false,
-          "sensitive": false
-        },
-        {
-          "name": "songFile",
-          "required": false,
-          "description": "模块支持的参数；具体取值参照接口说明。",
-          "file": true,
           "sensitive": false
         }
       ],
@@ -1316,6 +1336,27 @@
       "upload": false
     },
     {
+      "route": "/banner/v3",
+      "title": "首页轮播（v3）",
+      "category": "发现与推荐",
+      "documented": true,
+      "description": "调用此接口 , 获取 v3 版首页轮播图（v9.6.13 客户端使用版本）",
+      "documentation": "说明 : 调用此接口 , 获取 v3 版首页轮播图（v9.6.13 客户端使用版本）\n\n**可选参数 :**\n\n`clientType` : 客户端类型, 默认 android\n\n**接口地址 :** `/banner/v3`\n\n**调用例子 :** `/banner/v3?clientType=android`",
+      "params": [
+        {
+          "name": "clientType",
+          "required": false,
+          "description": "客户端类型, 默认 android",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "banner_v3.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/calendar",
       "title": "音乐日历",
       "category": "发现与推荐",
@@ -1550,6 +1591,83 @@
       "upload": false
     },
     {
+      "route": "/recommend/category/config",
+      "title": "设置每日指定风格歌曲推荐的风格",
+      "category": "发现与推荐",
+      "documented": true,
+      "description": "调用此接口 , 可设置每日指定风格歌曲推荐的风格",
+      "documentation": "说明 : 调用此接口 , 可设置每日指定风格歌曲推荐的风格\n\n**必选参数 :**\n\n`tags`: 风格标签, 可通过 `/recommend/category/configs` 获取\n\n`category`: 风格标签的父ID, 可通过 `/recommend/category/configs` 获取\n\n!> 只能设置当前CategoryId下的tags, 不能设置其他CategoryId下的tags, 否则会报错\n\n**接口地址 :** `/recommend/category/config`\n\n**调用例子 :** `/recommend/category/config?tags=10004,10015&categoryId=1000`\n\n## 离线访问此文档\n\n此文档同时也是 Progressive Web Apps(PWA), 加入了 serviceWorker, 可离线访问\n\n## 关于此文档\n\n此文档由 [docsify](https://github.com/QingWei-Li/docsify/) 生成 docsify 是一个动态生成文档网站的工具。不同于 GitBook、Hexo 的地方是它不会生成将 .md 转成 .html 文件，所有转换工作都是在运行时进行。",
+      "params": [
+        {
+          "name": "tags",
+          "required": true,
+          "description": "风格标签, 可通过"
+        },
+        {
+          "name": "category",
+          "required": true,
+          "description": "风格标签的父ID, 可通过"
+        }
+      ],
+      "supported": false,
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/recommend/category/configs",
+      "title": "获取每日指定风格歌曲推荐的风格列表",
+      "category": "发现与推荐",
+      "documented": true,
+      "description": "调用此接口 , 可获取每日指定风格歌曲推荐的风格列表",
+      "documentation": "说明 : 调用此接口 , 可获取每日指定风格歌曲推荐的风格列表\n\n**接口地址 :** `/recommend/category/configs`\n\n**调用例子 :** `/recommend/category/configs`",
+      "params": [],
+      "supported": true,
+      "module": "recommend_category_configs.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/recommend/category/set",
+      "title": "每日风格推荐场景配置设置",
+      "category": "发现与推荐",
+      "documented": false,
+      "description": "当前项目模块提供的接口。参数可参考模块说明，并通过额外参数补充。",
+      "documentation": "",
+      "params": [
+        {
+          "name": "tags",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "category",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "recommend_category_set.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/recommend/category/songs",
+      "title": "每日指定风格歌曲推荐",
+      "category": "发现与推荐",
+      "documented": true,
+      "description": "调用此接口 , 可获取每日指定风格歌曲推荐",
+      "documentation": "说明 : 调用此接口 , 可获取每日指定风格歌曲推荐\n\n**接口地址 :** `/recommend/category/songs`\n\n**调用例子 :** `/recommend/category/songs`",
+      "params": [],
+      "supported": true,
+      "module": "recommend_category_songs.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/recommend/resource",
       "title": "获取每日推荐歌单",
       "category": "发现与推荐",
@@ -1601,6 +1719,27 @@
       ],
       "supported": true,
       "module": "recommend_songs_dislike.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/recommend/songs/v1",
+      "title": "获取每日推荐歌曲 - v1",
+      "category": "发现与推荐",
+      "documented": true,
+      "description": "调用此接口 , 可获得每日推荐歌曲 ( 需要登录 )",
+      "documentation": "说明 : 调用此接口 , 可获得每日推荐歌曲 ( 需要登录 )\n\n**可选参数 :** `ispush`: 是否刷新日推 , 默认为 false\n\n**接口地址 :** `/recommend/songs/v1`\n\n**调用例子 :** `/recommend/songs/v1`",
+      "params": [
+        {
+          "name": "ispush",
+          "required": false,
+          "description": "是否刷新日推 , 默认为 false",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "recommend_songs_v1.js",
       "mutating": false,
       "upload": false
     },
@@ -1728,6 +1867,48 @@
       "upload": false
     },
     {
+      "route": "/search/lyric",
+      "title": "按歌词搜索",
+      "category": "发现与推荐",
+      "documented": true,
+      "description": "调用此接口 , 传入歌词片段可搜索包含该歌词的歌曲, 返回 resources 数组（含 lyric 匹配行、 highlightText 高亮文本、 歌曲详情）",
+      "documentation": "说明 : 调用此接口 , 传入歌词片段可搜索包含该歌词的歌曲, 返回 resources 数组（含 lyric 匹配行、 highlightText 高亮文本、 歌曲详情）\n\n**必选参数 :**\n\n`keyword` : 歌词片段\n\n**可选参数 :**\n\n`limit` : 返回数量, 默认 30\n`offset` : 偏移量\n\n**接口地址 :** `/search/lyric`\n\n**调用例子 :** `/search/lyric?keyword=天青色等烟雨`",
+      "params": [
+        {
+          "name": "keyword",
+          "required": true,
+          "description": "歌词片段",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "description": "返回数量, 默认 30",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "offset",
+          "required": false,
+          "description": "偏移量",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "keywords",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "search_lyric.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/search/match",
       "title": "本地歌曲文件匹配网易云歌曲信息",
       "category": "发现与推荐",
@@ -1805,6 +1986,55 @@
       "upload": false
     },
     {
+      "route": "/search/song/list/page",
+      "title": "新版单曲搜索（分页）",
+      "category": "发现与推荐",
+      "documented": true,
+      "description": "调用此接口 , 使用 v9.6.13 客户端新版单曲搜索接口 , 返回 resources 数组（含歌曲信息、 royaltyInfo、 高亮词 hlWords）与 hasMore 分页标记",
+      "documentation": "说明 : 调用此接口 , 使用 v9.6.13 客户端新版单曲搜索接口 , 返回 resources 数组（含歌曲信息、 royaltyInfo、 高亮词 hlWords）与 hasMore 分页标记\n\n**必选参数 :**\n\n`keyword` : 搜索关键词\n\n**可选参数 :**\n\n`limit` : 返回数量, 默认 30\n`offset` : 偏移量\n`scene` : 场景, 默认 normal\n\n**接口地址 :** `/search/song/list/page`\n\n**调用例子 :** `/search/song/list/page?keyword=如果呢&limit=30`",
+      "params": [
+        {
+          "name": "keyword",
+          "required": true,
+          "description": "搜索关键词",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "description": "返回数量, 默认 30",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "offset",
+          "required": false,
+          "description": "偏移量",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "scene",
+          "required": false,
+          "description": "场景, 默认 normal",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "keywords",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "search_song_list_page.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/search/suggest",
       "title": "搜索建议",
       "category": "发现与推荐",
@@ -1829,6 +2059,34 @@
       ],
       "supported": true,
       "module": "search_suggest.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/search/suggest/mobile",
+      "title": "搜索联想词（App 移动端版）",
+      "category": "发现与推荐",
+      "documented": true,
+      "description": "调用此接口 , 传入搜索关键词可获得 App 搜索框下拉的联想结果：第 0 条为直hit歌曲卡（含完整歌曲数据 simpleSongData）, 其后为联想词列表（首条带\"热搜\"标签, 另有\"原唱\"标签卡）, 每条带 highLightInfo 高亮分段。与 v9.6.13 客户端截图逐字段对齐。",
+      "documentation": "说明 : 调用此接口 , 传入搜索关键词可获得 App 搜索框下拉的联想结果：第 0 条为直hit歌曲卡（含完整歌曲数据 simpleSongData）, 其后为联想词列表（首条带\"热搜\"标签, 另有\"原唱\"标签卡）, 每条带 highLightInfo 高亮分段。与 v9.6.13 客户端截图逐字段对齐。\n\n**必选参数 :**\n\n`keyword` : 搜索关键词（注意: 参数名必须是 keyword, 传 keywords/s 会返回 HTTP 400 空体）\n\n**接口地址 :** `/search/suggest/mobile`\n\n**调用例子 :** `/search/suggest/mobile?keyword=如果呢`",
+      "params": [
+        {
+          "name": "keyword",
+          "required": true,
+          "description": "搜索关键词（注意: 参数名必须是 keyword, 传 keywords/s 会返回 HTTP 400 空体）",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "keywords",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "search_suggest_mobile.js",
       "mutating": false,
       "upload": false
     },
@@ -3268,6 +3526,34 @@
       "upload": false
     },
     {
+      "route": "/like/v1",
+      "title": "喜欢音乐 - 新版",
+      "category": "歌曲与下载",
+      "documented": true,
+      "description": "调用此接口 , 传入音乐 id, 可喜欢该音乐",
+      "documentation": "说明: 调用此接口 , 传入音乐 id, 可喜欢该音乐\n\n**必选参数 :** `id`: 歌曲 id\n\n**可选参数 :** `like`: 布尔值 , 默认为 true 即喜欢 , 若传 false, 则取消喜欢\n\n**接口地址 :** `/like/v1`\n\n**调用例子 :** `/like/v1?id=347230`",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "歌曲 id",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "like",
+          "required": false,
+          "description": "布尔值 , 默认为 true 即喜欢 , 若传 false, 则取消喜欢",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "like_v1.js",
+      "mutating": true,
+      "upload": false
+    },
+    {
       "route": "/likelist",
       "title": "喜欢音乐列表",
       "category": "歌曲与下载",
@@ -4072,7 +4358,7 @@
       "category": "歌曲与下载",
       "documented": true,
       "description": "使用 /song/url/v1 接口获取的是歌曲试听 url, 非 VIP 账号最高只能获取 极高 音质，但免费类型的歌曲(fee == 0)使用本接口可最高获取Hi-Res音质的 url。",
-      "documentation": "说明 : 使用 `/song/url/v1` 接口获取的是歌曲试听 url, 非 VIP 账号最高只能获取 `极高` 音质，但免费类型的歌曲(`fee == 0`)使用本接口可最高获取`Hi-Res`音质的 url。\n\n**必选参数 :** `id` : 音乐 id\n`level`: 播放音质等级, 分为 `standard` => `标准`,`higher` => `较高`, `exhigh`=>`极高`,\n`lossless`=>`无损`, `hires`=>`Hi-Res`, `jyeffect` => `高清环绕声`, `sky` => `沉浸环绕声`, `dolby` => `杜比全景声`, `jymaster` => `超清母带`\n\n**接口地址 :** `/song/download/url/v1`\n\n**调用例子 :** `/song/download/url/v1?id=2155423468&level=hires`",
+      "documentation": "说明 : 使用 `/song/url/v1` 接口获取的是歌曲试听 url, 非 VIP 账号最高只能获取 `极高` 音质，但免费类型的歌曲(`fee == 0`)使用本接口可最高获取`Hi-Res`音质的 url。\n\n**必选参数 :** `id` : 音乐 id\n`level`: 播放音质等级, 分为 `standard` => `标准`,`higher` => `较高`, `exhigh`=>`极高`,\n`lossless`=>`无损`, `hires`=>`Hi-Res`, `jyeffect` => `高清臻音`, `dolby` => `杜比全景声`, `vivid` => `臻音全景声`, `jymaster` => `超清母带`, `sky` => `沉浸环绕声`\n\n**接口地址 :** `/song/download/url/v1`\n\n**调用例子 :** `/song/download/url/v1?id=2155423468&level=hires`",
       "params": [
         {
           "name": "id",
@@ -4309,8 +4595,8 @@
       "title": "歌曲音质详情",
       "category": "歌曲与下载",
       "documented": true,
-      "description": "调用此接口获取歌曲各个音质的文件信息，与 获取歌曲详情 接口相比，多出 高清环绕声、沉浸环绕声、超清母带等音质的信息",
-      "documentation": "说明: 调用此接口获取歌曲各个音质的文件信息，与 `获取歌曲详情` 接口相比，多出 `高清环绕声`、`沉浸环绕声`、`超清母带`等音质的信息\n\n**必选参数：**\n\n`id`: 歌曲 id\n\n**接口地址:** `/song/music/detail`\n\n**调用例子:** `/song/music/detail?id=2082700997`\n\n返回字段说明 :\n\n```\n\"br\": 比特率Bit Rate,\n\"size\": 文件大小,\n\"vd\": Volume Delta,\n\"sr\": 采样率Sample Rate\n```",
+      "description": "调用此接口获取歌曲各个音质的文件信息，与 获取歌曲详情 接口相比，多出高清臻音、杜比全景声、臻音全景声、超清母带、沉浸环绕声等音质的信息",
+      "documentation": "说明: 调用此接口获取歌曲各个音质的文件信息，与 `获取歌曲详情` 接口相比，多出`高清臻音`、`杜比全景声`、`臻音全景声`、`超清母带`、`沉浸环绕声`等音质的信息\n\n**必选参数：**\n\n`id`: 歌曲 id\n\n**接口地址:** `/song/music/detail`\n\n**调用例子:** `/song/music/detail?id=2082700997`\n\n返回字段说明 :\n\n```\n\"br\": 比特率Bit Rate,\n\"size\": 文件大小,\n\"vd\": Volume Delta,\n\"sr\": 采样率Sample Rate\n```",
       "params": [
         {
           "name": "id",
@@ -4371,6 +4657,27 @@
       ],
       "supported": true,
       "module": "song_red_count.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/song/simi/get",
+      "title": "插播相似歌曲",
+      "category": "歌曲与下载",
+      "documented": true,
+      "description": "调用此接口, 传入歌曲 id, 可获取插播相似歌曲",
+      "documentation": "说明: 调用此接口, 传入歌曲 id, 可获取插播相似歌曲\n\n**必选参数 :** `id`: 歌曲 id\n\n**接口地址 :** `/song/simi/get`\n\n**调用例子 :** `/song/simi/get?id=39227633`",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "歌曲 id",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "song_simi_get.js",
       "mutating": false,
       "upload": false
     },
@@ -4449,7 +4756,7 @@
       "category": "歌曲与下载",
       "documented": true,
       "description": "使用注意事项同上",
-      "documentation": "说明 : 使用注意事项同上\n\n**必选参数 :** `id` : 音乐 id\n`level`: 播放音质等级, 分为 `standard` => `标准`,`higher` => `较高`, `exhigh`=>`极高`,\n`lossless`=>`无损`, `hires`=>`Hi-Res`, `jyeffect` => `高清环绕声`, `sky` => `沉浸环绕声`, `dolby` => `杜比全景声`, `jymaster` => `超清母带`\n`unblock`: 是否使用使用歌曲解锁, 分为`true`和`false`\n\n**可选参数 :** `immerseType`: 沉浸声环绕声类型, 分为 `c51` => `c51类型`, `ste` => `环绕立体声类型`, `aac` => `aac类型`, 仅在 `level=sky` 时生效, 默认为 `c51`\n\n**接口地址 :** `/song/url/v1`\n\n**调用例子 :** `/song/url/v1?id=1969519579&level=exhigh` `/song/url/v1?id=1969519579,33894312&level=lossless` `/song/url/v1?id=1969519579&level=sky&immerseType=ste`\n\n说明：`杜比全景声`音质需要设备支持，不同的设备可能会返回不同码率的 url。cookie 需要传入`os=pc`保证返回正常码率的 url。",
+      "documentation": "说明 : 使用注意事项同上\n\n**必选参数 :** `id` : 音乐 id\n`level`: 播放音质等级, 分为 `standard` => `标准`,`higher` => `较高`, `exhigh`=>`极高`,\n`lossless`=>`无损`, `hires`=>`Hi-Res`, `jyeffect` => `高清臻音`, `dolby` => `杜比全景声`, `vivid` => `臻音全景声`, `jymaster` => `超清母带`, `sky` => `沉浸环绕声`\n`unblock`: 是否使用使用歌曲解锁, 分为`true`和`false`\n\n**可选参数 :** `immerseType`: 沉浸声环绕声类型, 分为`c512` => `新版c51类型`, `ste2` => `新版环绕立体声类型`, `aac2` => `新版aac类型`, `c51` => `c51类型`, `ste` => `环绕立体声类型`, `aac` => `aac类型`, 仅在 `level=sky` 时生效, 默认为 `c51`\n\n**接口地址 :** `/song/url/v1`\n\n**调用例子 :** `/song/url/v1?id=1969519579&level=exhigh` `/song/url/v1?id=1969519579,33894312&level=lossless` `/song/url/v1?id=1969519579&level=sky&immerseType=ste` `/song/url/v1?id=1969519579&level=vivid`\n\n说明：`杜比全景声`音质需要设备支持，不同的设备可能会返回不同码率的 url。cookie 需要传入`os=pc`保证返回正常码率的 url。",
       "params": [
         {
           "name": "id",
@@ -4498,7 +4805,7 @@
       "category": "歌曲与下载",
       "documented": true,
       "description": "只允许传入单个id，会使用302重定向请求到目标url",
-      "documentation": "说明 : 只允许传入单个`id`，会使用302重定向请求到目标url\n\n**必选参数 :** `id` : 音乐 id\n`level`: 播放音质等级, 分为 `standard` => `标准`,`higher` => `较高`, `exhigh`=>`极高`,\n`lossless`=>`无损`, `hires`=>`Hi-Res`, `jyeffect` => `高清环绕声`, `sky` => `沉浸环绕声`, `dolby` => `杜比全景声`, `jymaster` => `超清母带`\n`unblock`: 是否使用使用歌曲解锁, 分为`true`和`false`\n\n**接口地址 :** `/song/url/v1/302`\n\n**调用例子 :** `/song/url/v1/302?id=1969519579&level=exhigh`\n\n说明：`杜比全景声`音质需要设备支持，不同的设备可能会返回不同码率的 url。cookie 需要传入`os=pc`保证返回正常码率的 url。",
+      "documentation": "说明 : 只允许传入单个`id`，会使用302重定向请求到目标url\n\n**必选参数 :** `id` : 音乐 id\n`level`: 播放音质等级, 分为 `standard` => `标准`,`higher` => `较高`, `exhigh`=>`极高`,\n`lossless`=>`无损`, `hires`=>`Hi-Res`, `jyeffect` => `高清臻音`, `dolby` => `杜比全景声`, `vivid` => `臻音全景声`, `jymaster` => `超清母带`, `sky` => `沉浸环绕声`\n`unblock`: 是否使用使用歌曲解锁, 分为`true`和`false`\n\n**接口地址 :** `/song/url/v1/302`\n\n**调用例子 :** `/song/url/v1/302?id=1969519579&level=exhigh`\n\n说明：`杜比全景声`音质需要设备支持，不同的设备可能会返回不同码率的 url。cookie 需要传入`os=pc`保证返回正常码率的 url。",
       "params": [
         {
           "name": "id",
@@ -4524,6 +4831,27 @@
       ],
       "supported": true,
       "module": "song_url_v1_302.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/song/wiki/info",
+      "title": "音乐百科",
+      "category": "歌曲与下载",
+      "documented": true,
+      "description": "调用此接口可以获取歌曲的音乐百科信息",
+      "documentation": "说明: 调用此接口可以获取歌曲的音乐百科信息\n\n**接口地址:** `/song/wiki/info`\n\n**必选参数:** `id`: 歌曲 ID\n\n**调用例子:** `/song/wiki/info?id=1958384591`",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "歌曲 ID",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "song_wiki_info.js",
       "mutating": false,
       "upload": false
     },
@@ -5704,6 +6032,27 @@
       "upload": false
     },
     {
+      "route": "/comment/default/text",
+      "title": "评论默认文案",
+      "category": "评论与社交",
+      "documented": true,
+      "description": "调用此接口 , 传入评论区 threadId 可获取该评论区输入框的默认提示文案数组",
+      "documentation": "说明 : 调用此接口 , 传入评论区 threadId 可获取该评论区输入框的默认提示文案数组\n\n**必选参数 :**\n\n`threadId` : 评论区 ID（如 `A_EV_2_6559519868_32953014`）\n\n**接口地址 :** `/comment/default/text`\n\n**调用例子 :** `/comment/default/text?threadId=A_EV_2_6559519868_32953014`",
+      "params": [
+        {
+          "name": "threadId",
+          "required": true,
+          "description": "评论区 ID（如",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "comment_default_text.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/comment/delete",
       "title": "删除评论",
       "category": "评论与社交",
@@ -5933,6 +6282,19 @@
       "upload": false
     },
     {
+      "route": "/comment/hotwall/square/info",
+      "title": "热评墙广场信息",
+      "category": "评论与社交",
+      "documented": true,
+      "description": "调用此接口 , 可获取今天热评墙广场的配置信息",
+      "documentation": "说明 : 调用此接口 , 可获取今天热评墙广场的配置信息\n\n**接口地址 :** `/comment/hotwall/square/info`\n\n**调用例子 :** `/comment/hotwall/square/info`",
+      "params": [],
+      "supported": true,
+      "module": "comment_hotwall_square_info.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/comment/hug/list",
       "title": "评论抱一抱列表",
       "category": "评论与社交",
@@ -6008,7 +6370,7 @@
       "category": "评论与社交",
       "documented": true,
       "description": "调用此接口 , 传入资源类型和资源 id 列表 , 可批量获取对应资源的评论统计数据 ( 不需要登录 )",
-      "documentation": "说明 : 调用此接口 , 传入资源类型和资源 id 列表 , 可批量获取对应资源的评论统计数据 ( 不需要登录 )\n\n**必选参数 :**\n\n`type`: 数字 , 资源类型 , 对应以下类型\n\n```\n0: 歌曲\n\n1: mv\n\n2: 歌单\n\n3: 专辑\n\n4: 电台节目\n\n5: 视频\n\n6: 动态\n\n7: 电台\n```\n\n`ids`: 资源 id 列表 , 多个 id 用逗号分隔 , 如 `186016,347230`\n\n**接口地址 :** `/comment/info/list`\n\n**调用例子 :** `/comment/info/list?type=0&ids=186016,347230`\n\n**返回数据 :**\n\n```json\n{\n  \"data\": [\n    {\n      \"latestLikedUsers\": null,\n      \"liked\": false,\n      \"comments\": null,\n      \"resourceType\": 4,\n      \"resourceId\": 186016,\n      \"commentUpgraded\": false,\n      \"musicianSaidCount\": 0,\n      \"commentCountDesc\": \"100w+\",\n      \"likedCount\": 347,\n      \"commentCount\": 1970844,\n      \"shareCount\": 109721,\n      \"threadId\": \"R_SO_4_186016\"\n    }\n  ],\n  \"code\": 200\n}\n```",
+      "documentation": "说明 : 调用此接口 , 传入资源类型和资源 id 列表 , 可批量获取对应资源的评论统计数据 ( 不需要登录 )\n\n**必选参数 :**\n\n`type`: 数字 , 资源类型 , 对应以下类型\n\n```\n0: 歌曲\n\n1: mv\n\n2: 歌单\n\n3: 专辑\n\n4: 电台节目\n\n5: 视频\n\n6: 动态\n\n7: 电台\n```\n\n`ids`: 资源 id 列表 , 多个 id 用逗号分隔 , 如 `186016,347230`\n\n**接口地址 :** `/comment/info/list`\n\n**调用例子 :** `/comment/info/list?type=0&ids=186016,347230`",
       "params": [
         {
           "name": "type",
@@ -6323,7 +6685,7 @@
       "category": "评论与社交",
       "documented": true,
       "description": "登录后调用此接口, 传入歌曲 id 和评论 id, 举报评论",
-      "documentation": "说明 : 登录后调用此接口, 传入歌曲 id 和评论 id, 举报评论\n\n**必选参数 :**\n\n`id`: 歌曲 id\n\n`cid`: 评论 id\n\n`reason`: 举报理由\n\n**接口地址 :** `/comment/report`\n\n**调用例子 :* `/comment/report?id=2058263032&cid=123456789&reason=人身攻击`",
+      "documentation": "说明 : 登录后调用此接口, 传入歌曲 id 和评论 id, 举报评论\n\n**必选参数 :**\n\n`id`: 歌曲 id\n\n`cid`: 评论 id\n\n`reason`: 举报理由\n\n**接口地址 :** `/comment/report`\n\n*_调用例子 :_ `/comment/report?id=2058263032&cid=123456789&reason=人身攻击`",
       "params": [
         {
           "name": "id",
@@ -6479,6 +6841,76 @@
       "upload": false
     },
     {
+      "route": "/event/privacy",
+      "title": "修改动态可见权限",
+      "category": "评论与社交",
+      "documented": true,
+      "description": "登录后调用此接口，可以修改当前账号本人发布的单条动态的可见权限。此接口只负责一次原子修改；上游没有批量修改接口。如需批量操作，可先调用 /user/event/all 并按 privacySetting 筛选，再由调用方逐条调用本接口，同时自行处理限速、失败重试和部分成功。",
+      "documentation": "说明 : 登录后调用此接口，可以修改当前账号本人发布的单条动态的可见权限。此接口只负责一次原子修改；上游没有批量修改接口。如需批量操作，可先调用 `/user/event/all` 并按 `privacySetting` 筛选，再由调用方逐条调用本接口，同时自行处理限速、失败重试和部分成功。\n\n**必选参数 :** `evId` : 动态 id\n\n`privacy` : 目标可见权限。`0` 为所有人，`1` 为我关注的人，`2` 为仅自己，`6` 为互相关注的人\n\n**接口地址 :** `/event/privacy`\n\n**调用例子 :** `/event/privacy?evId=6712917601&privacy=0`",
+      "params": [
+        {
+          "name": "evId",
+          "required": true,
+          "description": "动态 id",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "privacy",
+          "required": true,
+          "description": "目标可见权限。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "event_privacy.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/event/search",
+      "title": "动态搜索",
+      "category": "评论与社交",
+      "documented": true,
+      "description": "调用此接口 , 传入关键词可搜索用户发布的动态",
+      "documentation": "说明 : 调用此接口 , 传入关键词可搜索用户发布的动态\n\n**必选参数 :**\n\n`keyword` : 关键词\n\n**可选参数 :**\n\n`limit` : 返回数量, 默认 30\n`offset` : 偏移量\n\n**接口地址 :** `/event/search`\n\n**调用例子 :** `/event/search?keyword=周杰伦`",
+      "params": [
+        {
+          "name": "keyword",
+          "required": true,
+          "description": "关键词",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "description": "返回数量, 默认 30",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "offset",
+          "required": false,
+          "description": "偏移量",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "keywords",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "event_search.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/follow",
       "title": "关注/取消关注用户",
       "category": "评论与社交",
@@ -6575,7 +7007,7 @@
       "category": "评论与社交",
       "documented": true,
       "description": "登录后调用此接口 , 传入用户 id, 可以获取用户动态",
-      "documentation": "说明 : 登录后调用此接口 , 传入用户 id, 可以获取用户动态\n\n**必选参数 :** `uid` : 用户 id\n\n**可选参数 :** `limit` : 返回数量 , 默认为 30\n\n`lasttime` : 返回数据的 `lasttime` ,默认-1,传入上一次返回结果的 lasttime,将会返回下一页的数据\n\n**接口地址 :** `/user/event`\n\n**调用例子 :** `/user/event?uid=32953014` `/user/event?uid=32953014&limit=1&lasttime=1558011138743`\n\n返回结果的`type`参数对应:\n\n```\n18 分享单曲\n19 分享专辑\n17、28 分享电台节目\n22 转发\n39 发布视频\n35、13 分享歌单\n24 分享专栏文章\n41、21 分享视频\n```",
+      "documentation": "说明 : 登录后调用此接口 , 传入用户 id, 可以获取用户动态\n\n**必选参数 :** `uid` : 用户 id\n\n**可选参数 :** `limit` : 返回数量 , 默认为 30\n\n`lasttime` : 返回数据的 `lasttime` ,默认-1,传入上一次返回结果的 lasttime,将会返回下一页的数据\n\n接口会传入官方客户端使用的 `fromRN=true`，登录用户读取自己的动态时可获得网易云允许本人查看的非公开动态。返回的 `size` 是网易云账户侧统计值，不保证等于分页后实际可获取的动态数量。\n\n**接口地址 :** `/user/event`\n\n**调用例子 :** `/user/event?uid=32953014` `/user/event?uid=32953014&limit=1&lasttime=1558011138743`\n\n返回结果的`type`参数对应:\n\n```\n18 分享单曲\n19 分享专辑\n17、28 分享电台节目\n22 转发\n39 发布视频\n35、13 分享歌单\n24 分享专栏文章\n41、21 分享视频\n```",
       "params": [
         {
           "name": "uid",
@@ -6601,6 +7033,55 @@
       ],
       "supported": true,
       "module": "user_event.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/user/event/all",
+      "title": "获取当前登录用户的全部可枚举动态",
+      "category": "评论与社交",
+      "documented": true,
+      "description": "登录后调用此接口，会组合 /user/account 与 /user/event 的原子能力：先从 Cookie 取得当前用户 id，再自动跟随 lasttime 游标读取至 more=false。接口返回网易云允许当前用户本人查看的公开及非公开动态，不能读取其他用户的私密动态。\n\n本接口不接受 limit 或 lasttime，一次请求会完成全部上游分页。账号动态较多时，请预留足够的请求时间。\n\n数量字段说明：\n\n- size：网易云返回的账户统计数量，可能包含已删除、被屏蔽、资源失效或旧类型且不再下发的记录。\n- retrievedCount：本次实际取得的唯一动态数量，始终等于 events.length。\n- unavailableCount：size - retrievedCount 的正差值；缺失记录没有返回 id，无法继续读取或修改。\n- sizeMismatch：size 与 retrievedCount 是否不一致。若上游未返回 size，相关字段为 null。\n- pageCount：本次实际请求的上游分页数量。\n\n每条动态的 privacySetting 表示当前可见权限：0 为所有人，1 为我关注的人，2 为仅自己，6 为互相关注的人。",
+      "documentation": "说明 : 登录后调用此接口，会组合 `/user/account` 与 `/user/event` 的原子能力：先从 Cookie 取得当前用户 id，再自动跟随 `lasttime` 游标读取至 `more=false`。接口返回网易云允许当前用户本人查看的公开及非公开动态，不能读取其他用户的私密动态。\n\n本接口不接受 `limit` 或 `lasttime`，一次请求会完成全部上游分页。账号动态较多时，请预留足够的请求时间。\n\n数量字段说明：\n\n- `size`：网易云返回的账户统计数量，可能包含已删除、被屏蔽、资源失效或旧类型且不再下发的记录。\n- `retrievedCount`：本次实际取得的唯一动态数量，始终等于 `events.length`。\n- `unavailableCount`：`size - retrievedCount` 的正差值；缺失记录没有返回 id，无法继续读取或修改。\n- `sizeMismatch`：`size` 与 `retrievedCount` 是否不一致。若上游未返回 `size`，相关字段为 `null`。\n- `pageCount`：本次实际请求的上游分页数量。\n\n每条动态的 `privacySetting` 表示当前可见权限：`0` 为所有人，`1` 为我关注的人，`2` 为仅自己，`6` 为互相关注的人。\n\n**接口地址 :** `/user/event/all`\n\n**调用例子 :** `/user/event/all`",
+      "params": [
+        {
+          "name": "size",
+          "required": false,
+          "description": "网易云返回的账户统计数量，可能包含已删除、被屏蔽、资源失效或旧类型且不再下发的记录。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "retrievedCount",
+          "required": false,
+          "description": "本次实际取得的唯一动态数量，始终等于",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "unavailableCount",
+          "required": false,
+          "description": "",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "sizeMismatch",
+          "required": false,
+          "description": "",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "pageCount",
+          "required": false,
+          "description": "本次实际请求的上游分页数量。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "user_event_all.js",
       "mutating": false,
       "upload": false
     },
@@ -6745,28 +7226,56 @@
     },
     {
       "route": "/ad/listening/rights/gain",
-      "title": "获取30分钟免费听歌时长",
+      "title": "看广告领取权益（免费听歌时长 / 云贝等）",
       "category": "其他功能",
       "documented": true,
-      "description": "登录后调用此接口, 获取30分钟免费听歌时长\n\n!> 警告: 通过调取接口出现的任何问题由调用者自行承担",
-      "documentation": "说明 : 登录后调用此接口, 获取30分钟免费听歌时长\n\n!> 警告: 通过调取接口出现的任何问题由调用者自行承担\n\n**可选参数 :** `reqUid` 通过`/ad/get` 获取的广告ID\n\n**接口地址 :** `/ad/listening/rights/gain`\n\n**调用例子 :** `/ad/listening/rights/gain`",
+      "description": "登录后调用此接口, 领取广告权益。权益类型由广告平台下发的配置决定, 不仅限于 30 分钟免费听歌时长, 还包括\"看视频获得最高 2000 云贝\"等拉新分段权益(rightsGainMethod=6)。除下方常用参数外, 权益类型/时长/扩展权益等其余字段会自动从广告下发配置补齐, 无需手动传入。\n\n!> 警告: 通过调取接口出现的任何问题由调用者自行承担",
+      "documentation": "说明 : 登录后调用此接口, 领取广告权益。权益类型由广告平台下发的配置决定, 不仅限于 30 分钟免费听歌时长, 还包括\"看视频获得最高 2000 云贝\"等拉新分段权益(`rightsGainMethod=6`)。除下方常用参数外, 权益类型/时长/扩展权益等其余字段会自动从广告下发配置补齐, 无需手动传入。\n\n!> 警告: 通过调取接口出现的任何问题由调用者自行承担\n\n**可选参数 :**\n\n`reqUid` : 广告请求 ID, 通过 `/ad/get` 获取, 未传时自动获取\n\n`uid` : 当前登录用户 ID, 不传时服务端从 Cookie 识别\n\n`rightsGainMethod` : 权益领取方式, `1`: 曝光, `2`: 曝光+点击(默认), `3`: 曝光+下载, `4`: 点击+停留, `5`: 曝光或点击停留, `6`: 拉新曝光/下载分段权益(看视频得云贝)\n\n`type_ids` : 广告位类型, 默认 `[\"400002_0\"]`\n\n`creativeType` : 广告创意类型, 激励视频场景为 `36`, 默认 `36`\n\n**接口地址 :** `/ad/listening/rights/gain`\n\n**调用例子 :** `/ad/listening/rights/gain`",
       "params": [
         {
           "name": "reqUid",
           "required": false,
-          "description": "模块支持的参数；具体取值参照接口说明。",
+          "description": "广告请求 ID, 通过",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "uid",
+          "required": false,
+          "description": "当前登录用户 ID, 不传时服务端从 Cookie 识别",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "rightsGainMethod",
+          "required": false,
+          "description": "权益领取方式,",
           "file": false,
           "sensitive": false
         },
         {
           "name": "type_ids",
           "required": false,
-          "description": "模块支持的参数；具体取值参照接口说明。",
+          "description": "广告位类型, 默认",
           "file": false,
           "sensitive": false
         },
         {
           "name": "creativeType",
+          "required": false,
+          "description": "广告创意类型, 激励视频场景为",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "contextInfo",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "generalRightsInfo",
           "required": false,
           "description": "模块支持的参数；具体取值参照接口说明。",
           "file": false,
@@ -6787,14 +7296,21 @@
           "sensitive": false
         },
         {
-          "name": "rightsGainMethod",
+          "name": "extraRightsType",
           "required": false,
           "description": "模块支持的参数；具体取值参照接口说明。",
           "file": false,
           "sensitive": false
         },
         {
-          "name": "rightsGainDuration",
+          "name": "playContinuously",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "source",
           "required": false,
           "description": "模块支持的参数；具体取值参照接口说明。",
           "file": false,
@@ -6822,7 +7338,21 @@
           "sensitive": false
         },
         {
-          "name": "source",
+          "name": "rightsGainType",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "rightsGainDuration",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "gainMethodStep",
           "required": false,
           "description": "模块支持的参数；具体取值参照接口说明。",
           "file": false,
@@ -6844,6 +7374,13 @@
         },
         {
           "name": "installed",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "sniffTime",
           "required": false,
           "description": "模块支持的参数；具体取值参照接口说明。",
           "file": false,
@@ -7069,7 +7606,7 @@
       "category": "其他功能",
       "documented": true,
       "description": "登录后调用此接口, 传入设备 id, 可强制下线设备的登录会话",
-      "documentation": "说明: 登录后调用此接口, 传入设备 id, 可强制下线设备的登录会话\n\n**必选参数 :** `key`: 设备的 `deviceKey`, 可通过 `/device/list` 获取\n\n`captcha`: 安全验证码, 可通过 `/captcha/safe/sent` 获取\n\n**接口地址 :** `/device/kickoff`\n\n**调用例子 :** `/device/kickoff?key=00ALDFGEXXXXXXXXXXXXXXXXX&captcha=1234`\n\n## 离线访问此文档\n\n此文档同时也是 Progressive Web Apps(PWA), 加入了 serviceWorker, 可离线访问\n\n## 关于此文档\n\n此文档由 [docsify](https://github.com/QingWei-Li/docsify/) 生成 docsify 是一个动态生成文档网站的工具。不同于 GitBook、Hexo 的地方是它不会生成将 .md 转成 .html 文件，所有转换工作都是在运行时进行。",
+      "documentation": "说明: 登录后调用此接口, 传入设备 id, 可强制下线设备的登录会话\n\n**必选参数 :** `key`: 设备的 `deviceKey`, 可通过 `/device/list` 获取\n\n`captcha`: 安全验证码, 可通过 `/captcha/safe/sent` 获取\n\n**接口地址 :** `/device/kickoff`\n\n**调用例子 :** `/device/kickoff?key=00ALDFGEXXXXXXXXXXXXXXXXX&captcha=1234`",
       "params": [
         {
           "name": "key",
@@ -7109,6 +7646,34 @@
       "supported": true,
       "module": "device_list.js",
       "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/deviceinfo/center/upload",
+      "title": "上报设备中心设备名称",
+      "category": "其他功能",
+      "documented": true,
+      "description": "登录后调用此接口, 传入 deviceName, 可修改当前设备在网易云登录设备管理列表里显示的名称",
+      "documentation": "说明: 登录后调用此接口, 传入 `deviceName`, 可修改当前设备在网易云登录设备管理列表里显示的名称\n\n**必选参数 :** `deviceName`: 期望展示的设备名称\n\n`name`: `deviceName` 的兼容别名, 二选一即可\n\n**接口地址 :** `/deviceinfo/center/upload`\n\n**调用例子 :** `/deviceinfo/center/upload?deviceName=XXXXX`",
+      "params": [
+        {
+          "name": "deviceName",
+          "required": true,
+          "description": "期望展示的设备名称",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "name",
+          "required": true,
+          "description": "",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "deviceinfo_center_upload.js",
+      "mutating": true,
       "upload": false
     },
     {
@@ -7217,6 +7782,19 @@
       "upload": false
     },
     {
+      "route": "/dislike/list",
+      "title": "获取不感兴趣歌曲列表",
+      "category": "其他功能",
+      "documented": true,
+      "description": "登录后调用此接口 , 可获取用户标记为不感兴趣的歌曲、歌手与播客 id 列表",
+      "documentation": "说明 : 登录后调用此接口 , 可获取用户标记为不感兴趣的歌曲、歌手与播客 id 列表\n\n**接口地址 :** `/dislike/list`\n\n**调用例子 :** `/dislike/list`\n\n返回数据 :\n\n```json\n{\n  \"code\": 200,\n  \"data\": {\n    \"songIdList\": [\"431791474\"],\n    \"artistIdList\": [],\n    \"podcastIds\": [],\n    \"checkPoint\": 1794300200342\n  },\n  \"message\": \"\"\n}\n```",
+      "params": [],
+      "supported": true,
+      "module": "dislike_list.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/eapi/decrypt",
       "title": "/eapi/decrypt",
       "category": "其他功能",
@@ -7241,6 +7819,131 @@
       ],
       "supported": true,
       "module": "eapi_decrypt.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/fans/group/detail",
+      "title": "获取乐迷团详情",
+      "category": "其他功能",
+      "documented": true,
+      "description": "调用此接口 , 可获取乐迷团详情",
+      "documentation": "说明 : 调用此接口 , 可获取乐迷团详情\n\n**必选参数 :** `groupId` : 乐迷团 ID\n\n**可选参数 :** `scene` : 场景标识\n\n**接口地址 :** `/fans/group/detail`\n\n**调用例子 :** `/fans/group/detail?groupId=1872529203038486609`",
+      "params": [
+        {
+          "name": "groupId",
+          "required": true,
+          "description": "乐迷团 ID",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "scene",
+          "required": false,
+          "description": "场景标识",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "id",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "fans_group_detail.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/fans/group/feed/recommend",
+      "title": "获取乐迷团推荐笔记",
+      "category": "其他功能",
+      "documented": true,
+      "description": "调用此接口 , 可获取指定乐迷团的推荐笔记",
+      "documentation": "说明 : 调用此接口 , 可获取指定乐迷团的推荐笔记\n\n**必选参数 :** `fansGroupId` : 乐迷团 ID\n\n**可选参数 :** `cursor` : 游标 , 默认为 0\n\n`size` : 返回数量 , 默认为 10\n\n**接口地址 :** `/fans/group/feed/recommend`\n\n**调用例子 :** `/fans/group/feed/recommend?fansGroupId=1872529203038486609&size=10&cursor=0`",
+      "params": [
+        {
+          "name": "fansGroupId",
+          "required": true,
+          "description": "乐迷团 ID",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "cursor",
+          "required": false,
+          "description": "游标 , 默认为 0",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "size",
+          "required": false,
+          "description": "返回数量 , 默认为 10",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "artistSelf",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "groupId",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "fans_group_feed_recommend.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/fans/group/user/group/detail",
+      "title": "获取用户在乐迷团的详情",
+      "category": "其他功能",
+      "documented": true,
+      "description": "登录后调用此接口 , 可获取当前用户在指定乐迷团的详细成员信息及铭牌等级",
+      "documentation": "说明 : 登录后调用此接口 , 可获取当前用户在指定乐迷团的详细成员信息及铭牌等级\n\n**必选参数 :** `groupId` : 乐迷团 ID\n\n**接口地址 :** `/fans/group/user/group/detail`\n\n**调用例子 :** `/fans/group/user/group/detail?groupId=1755777360858267711`",
+      "params": [
+        {
+          "name": "groupId",
+          "required": true,
+          "description": "乐迷团 ID",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "id",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "fans_group_user_group_detail.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/fans/group/user/groups",
+      "title": "获取用户乐迷团列表",
+      "category": "其他功能",
+      "documented": true,
+      "description": "登录后调用此接口 , 可获取当前登录用户已加入的全部歌手乐迷团列表",
+      "documentation": "说明 : 登录后调用此接口 , 可获取当前登录用户已加入的全部歌手乐迷团列表\n\n**接口地址 :** `/fans/group/user/groups`\n\n**调用例子 :** `/fans/group/user/groups`",
+      "params": [],
+      "supported": true,
+      "module": "fans_group_user_groups.js",
       "mutating": false,
       "upload": false
     },
@@ -7538,19 +8241,348 @@
       "category": "其他功能",
       "documented": true,
       "description": "调用此接口返回私人 FM 内容, 并可以选择模式",
-      "documentation": "说明: 调用此接口返回私人 FM 内容, 并可以选择模式\n\n**必选参数：**\n\n`mode`: 模式 (aidj, DEFAULT, FAMILIAR, EXPLORE, SCENE_RCMD)\n\n**可选参数：**\n\n`submode`: 当 mode 为 SCENE_RCMD 是可为 ( EXERCISE, FOCUS, NIGHT_EMO )\n\n**接口地址:** `/personal/fm/mode`",
+      "documentation": "说明: 调用此接口返回私人 FM 内容, 并可以选择模式\n\n**必选参数：**\n\n`mode`: 模式 (`DEFAULT`: 默认模式,`FAMILIAR`: 熟悉模式,`EXPLORE`: 探索模式,`SCENE_RCMD`: 场景模式, 需要传入`submode`参数,`PUZZLE_MODE_RCMD`: 拼图模式)\n\n**可选参数：**\n\n`submode`: 当 mode 为 SCENE_RCMD 时传入 ( `EXERCISE`: 运动, `FOCUS`: 专注, `NIGHT_EMO`: 伤感, `SLEEP_HELP`: 助眠, `RELAX`: 放松, `CHEERFUL`: 欢快, `LYRICAL`: 抒情, `CURE`: 治愈, `SWEET`: 情歌, `RHYTHM_BLUES`: R&B, `RAINY`: 雨天, `GAMES`: 游戏, `RAP`: 说唱, `K_POP`: K-Pop, `ORIGINAL_MUSICIAL`: 宝藏原创, `ELECTRONIC`: 电音, `COMMUTE`: 出行, `TAKE_SHOWER`: 洗澡, `COFFEE_SHOP`: 咖啡馆, `ROCK`: 摇滚, `INSPIRATIONAL`: 励志, `CHINESE`: 华语, `ENGLISH`: 欧美, `YUEYU`: 粤语, `MANYAO`: 慢摇DJ, `JINGDIAN`: 经典, `LIGHT`: 轻音乐, `GUOFENG`: 国风, `FOLK`: 民谣, `ACG`: 二次元, `GUDIAN`: 古典, `JAZZ`: 爵士, `JAPANESE`: 日语, `GLOBAL`: 全球, `FRANCH`: 法语, `BLUE`: 蓝调, `DANCE`: 舞蹈, `LATIN`: 拉丁, `PUNK`: 放克, `COUNTRY`: 乡村乐, `MUSICAL`: 音乐剧, `YINGSHI`: 影视)\n\n**接口地址:** `/personal/fm/mode`",
       "params": [
         {
           "name": "mode",
           "required": true,
-          "description": "模式 (aidj, DEFAULT, FAMILIAR, EXPLORE, SCENE_RCMD)",
+          "description": "模式 (",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "DEFAULT",
+          "required": true,
+          "description": "默认模式,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "FAMILIAR",
+          "required": true,
+          "description": "熟悉模式,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "EXPLORE",
+          "required": true,
+          "description": "探索模式,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "SCENE_RCMD",
+          "required": true,
+          "description": "场景模式, 需要传入",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "PUZZLE_MODE_RCMD",
+          "required": true,
+          "description": "拼图模式)",
           "file": false,
           "sensitive": false
         },
         {
           "name": "submode",
           "required": false,
-          "description": "当 mode 为 SCENE_RCMD 是可为 ( EXERCISE, FOCUS, NIGHT_EMO )",
+          "description": "当 mode 为 SCENE_RCMD 时传入 (",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "EXERCISE",
+          "required": false,
+          "description": "运动,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "FOCUS",
+          "required": false,
+          "description": "专注,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "NIGHT_EMO",
+          "required": false,
+          "description": "伤感,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "SLEEP_HELP",
+          "required": false,
+          "description": "助眠,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "RELAX",
+          "required": false,
+          "description": "放松,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "CHEERFUL",
+          "required": false,
+          "description": "欢快,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "LYRICAL",
+          "required": false,
+          "description": "抒情,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "CURE",
+          "required": false,
+          "description": "治愈,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "SWEET",
+          "required": false,
+          "description": "情歌,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "RHYTHM_BLUES",
+          "required": false,
+          "description": "R&B,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "RAINY",
+          "required": false,
+          "description": "雨天,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "GAMES",
+          "required": false,
+          "description": "游戏,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "RAP",
+          "required": false,
+          "description": "说唱,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "K_POP",
+          "required": false,
+          "description": "K-Pop,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "ORIGINAL_MUSICIAL",
+          "required": false,
+          "description": "宝藏原创,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "ELECTRONIC",
+          "required": false,
+          "description": "电音,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "COMMUTE",
+          "required": false,
+          "description": "出行,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "TAKE_SHOWER",
+          "required": false,
+          "description": "洗澡,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "COFFEE_SHOP",
+          "required": false,
+          "description": "咖啡馆,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "ROCK",
+          "required": false,
+          "description": "摇滚,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "INSPIRATIONAL",
+          "required": false,
+          "description": "励志,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "CHINESE",
+          "required": false,
+          "description": "华语,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "ENGLISH",
+          "required": false,
+          "description": "欧美,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "YUEYU",
+          "required": false,
+          "description": "粤语,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "MANYAO",
+          "required": false,
+          "description": "慢摇DJ,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "JINGDIAN",
+          "required": false,
+          "description": "经典,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "LIGHT",
+          "required": false,
+          "description": "轻音乐,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "GUOFENG",
+          "required": false,
+          "description": "国风,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "FOLK",
+          "required": false,
+          "description": "民谣,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "ACG",
+          "required": false,
+          "description": "二次元,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "GUDIAN",
+          "required": false,
+          "description": "古典,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "JAZZ",
+          "required": false,
+          "description": "爵士,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "JAPANESE",
+          "required": false,
+          "description": "日语,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "GLOBAL",
+          "required": false,
+          "description": "全球,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "FRANCH",
+          "required": false,
+          "description": "法语,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "BLUE",
+          "required": false,
+          "description": "蓝调,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "DANCE",
+          "required": false,
+          "description": "舞蹈,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "LATIN",
+          "required": false,
+          "description": "拉丁,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "PUNK",
+          "required": false,
+          "description": "放克,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "COUNTRY",
+          "required": false,
+          "description": "乡村乐,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "MUSICAL",
+          "required": false,
+          "description": "音乐剧,",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "YINGSHI",
+          "required": false,
+          "description": "影视)",
           "file": false,
           "sensitive": false
         },
@@ -9776,6 +10808,68 @@
       "upload": false
     },
     {
+      "route": "/yunbei/task/finish/v1",
+      "title": "云贝广告任务 - 完成任务领取云贝",
+      "category": "其他功能",
+      "documented": true,
+      "description": "登录后调用此接口可完成任务并领取云贝。实测仅需传 yunbeiAmount（单次云贝数，客户端从 list 接口的 singleAmount 取值，当前为 150）即可成功领取，无需真实听歌/看视频。单日上限 10 次 × 150 = 1500 云贝/天，超限返回 code:400 \"单日完成任务数已达上限\"。建议领取前先调用 /yunbei/task/list/v1 查询今日剩余次数。",
+      "documentation": "说明 :登录后调用此接口可完成任务并领取云贝。实测仅需传 `yunbeiAmount`（单次云贝数，客户端从 `list` 接口的 `singleAmount` 取值，当前为 150）即可成功领取，无需真实听歌/看视频。单日上限 10 次 × 150 = 1500 云贝/天，超限返回 `code:400 \"单日完成任务数已达上限\"`。建议领取前先调用 `/yunbei/task/list/v1` 查询今日剩余次数。\n\n**可选参数 :** `yunbeiAmount`: 单次云贝数，默认为 150\n\n**接口地址 :** `/yunbei/task/finish/v1`\n\n**调用例子 :** `/yunbei/task/finish/v1?yunbeiAmount=150`",
+      "params": [
+        {
+          "name": "yunbeiAmount",
+          "required": false,
+          "description": "单次云贝数，默认为 150",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "yunbei_task_finish_v1.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/yunbei/task/list/v1",
+      "title": "云贝广告任务 - 今日任务状态",
+      "category": "其他功能",
+      "documented": true,
+      "description": "登录后调用此接口可查询云贝广告任务（\"听歌/看视频得云贝\"）今日状态。逆向自云贝任务中心 H5 页面（st.music.163.com/yunbei-listen）。返回 times（今日已完成次数）、amount（今日累计云贝）、singleAmount（单次可得云贝）。单日上限 10 次。",
+      "documentation": "说明 :登录后调用此接口可查询云贝广告任务（\"听歌/看视频得云贝\"）今日状态。逆向自云贝任务中心 H5 页面（st.music.163.com/yunbei-listen）。返回 `times`（今日已完成次数）、`amount`（今日累计云贝）、`singleAmount`（单次可得云贝）。单日上限 10 次。\n\n**接口地址 :** `/yunbei/task/list/v1`\n\n**调用例子 :** `/yunbei/task/list/v1`",
+      "params": [],
+      "supported": true,
+      "module": "yunbei_task_list_v1.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/yunbei/task/recommend/song",
+      "title": "云贝广告任务 - 获取推荐歌曲",
+      "category": "其他功能",
+      "documented": true,
+      "description": "登录后调用此接口可获取云贝广告任务的推荐歌曲列表。返回数组项含 songId、songName、artistName、albumUrl、songChorusStartTime、likeFlag、alg（均为 alg_payrec_yunBei_*）。",
+      "documentation": "说明 :登录后调用此接口可获取云贝广告任务的推荐歌曲列表。返回数组项含 `songId`、`songName`、`artistName`、`albumUrl`、`songChorusStartTime`、`likeFlag`、`alg`（均为 `alg_payrec_yunBei_*`）。\n\n**可选参数 :** `offset`: 偏移数量，默认为 0\n\n`limit`: 取出数量，默认为 10（客户端每次固定取 10 首）\n\n**接口地址 :** `/yunbei/task/recommend/song`\n\n**调用例子 :** `/yunbei/task/recommend/song` `/yunbei/task/recommend/song?offset=0&limit=10`",
+      "params": [
+        {
+          "name": "offset",
+          "required": false,
+          "description": "偏移数量，默认为 0",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "description": "取出数量，默认为 10（客户端每次固定取 10 首）",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "yunbei_task_recommend_song.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
       "route": "/yunbei/tasks",
       "title": "云贝所有任务",
       "category": "其他功能",
@@ -9904,6 +10998,41 @@
       ],
       "supported": true,
       "module": "mlog_music_rcmd.js",
+      "mutating": false,
+      "upload": false
+    },
+    {
+      "route": "/mlog/mycollect",
+      "title": "我收藏的播客(按时间分页)",
+      "category": "视频与 MV",
+      "documented": true,
+      "description": "登录后调用此接口 , 可获取当前用户收藏的播客(Mlog)动态列表",
+      "documentation": "说明 : 登录后调用此接口 , 可获取当前用户收藏的播客(Mlog)动态列表\n\n**可选参数 :** `time`: 分页游标 , 默认为 -1 表示从最新一条开始 , 下一页传上次响应中的 `data.time`\n\n`limit`: 取出条数 , 默认为 30\n\n`type`: 动态类型 , 默认为 3\n\n**接口地址 :** `/mlog/mycollect`\n\n**调用例子 :** `/mlog/mycollect` `/mlog/mycollect?limit=10`",
+      "params": [
+        {
+          "name": "time",
+          "required": false,
+          "description": "分页游标 , 默认为 -1 表示从最新一条开始 , 下一页传上次响应中的",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "description": "取出条数 , 默认为 30",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "type",
+          "required": false,
+          "description": "动态类型 , 默认为 3",
+          "file": false,
+          "sensitive": false
+        }
+      ],
+      "supported": true,
+      "module": "mlog_mycollect.js",
       "mutating": false,
       "upload": false
     },
@@ -11656,15 +12785,7 @@
       "documented": false,
       "description": "当前项目模块提供的接口。参数可参考模块说明，并通过额外参数补充。",
       "documentation": "",
-      "params": [
-        {
-          "name": "refresh",
-          "required": false,
-          "description": "模块支持的参数；具体取值参照接口说明。",
-          "file": false,
-          "sensitive": false
-        }
-      ],
+      "params": [],
       "supported": true,
       "module": "register_checktoken_v2.js",
       "mutating": true,
@@ -11677,9 +12798,29 @@
       "documented": false,
       "description": "当前项目模块提供的接口。参数可参考模块说明，并通过额外参数补充。",
       "documentation": "",
+      "params": [],
+      "supported": true,
+      "module": "register_checktoken_v3.js",
+      "mutating": true,
+      "upload": false
+    },
+    {
+      "route": "/register/neapikey",
+      "title": "/register/neapikey",
+      "category": "账号与资料",
+      "documented": false,
+      "description": "当前项目模块提供的接口。参数可参考模块说明，并通过额外参数补充。",
+      "documentation": "",
       "params": [
         {
-          "name": "refresh",
+          "name": "version",
+          "required": false,
+          "description": "模块支持的参数；具体取值参照接口说明。",
+          "file": false,
+          "sensitive": false
+        },
+        {
+          "name": "behavior",
           "required": false,
           "description": "模块支持的参数；具体取值参照接口说明。",
           "file": false,
@@ -11687,7 +12828,7 @@
         }
       ],
       "supported": true,
-      "module": "register_checktoken_v3.js",
+      "module": "register_neapikey.js",
       "mutating": true,
       "upload": false
     },
