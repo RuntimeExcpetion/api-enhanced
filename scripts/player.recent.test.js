@@ -38,7 +38,7 @@ test('cloud recent records unwrap song data and keep the server playback timesta
   assert.equal(songs[1].duration, 180)
 })
 
-test('duplicate cloud entries stay as separate plays and malformed records do not become songs', () => {
+test('duplicate cloud entries keep the newest occurrence and malformed records do not become songs', () => {
   const songs = recentSongs(
     {
       data: {
@@ -59,12 +59,10 @@ test('duplicate cloud entries stay as separate plays and malformed records do no
     },
     normalizeSong,
   )
-  assert.equal(songs.length, 3)
+  assert.equal(songs.length, 2)
   assert.equal(songs[0].playedAt, 1700000300000)
-  assert.equal(songs[1].id, '1')
-  assert.equal(songs[1].playedAt, 1700000000000)
-  assert.equal(songs[2].title, 'Fallback title')
-  assert.equal(songs[2].playedAt, 0)
+  assert.equal(songs[1].title, 'Fallback title')
+  assert.equal(songs[1].playedAt, 0)
   assert.deepEqual(recentSongs({ data: { list: {} } }, normalizeSong), [])
 })
 
@@ -84,7 +82,7 @@ test('recent time formatting supports missing times, epoch seconds and explicit 
   assert.equal(recentTime(0), '未提供播放时间')
 })
 
-test('recent summary distinguishes server count, usable records, repeated songs and upstream total', () => {
+test('recent summary distinguishes raw server count, unique songs and upstream total', () => {
   const { recentSummary } = require('../public/player/visual-core')
   const result = {
     data: {
@@ -98,10 +96,8 @@ test('recent summary distinguishes server count, usable records, repeated songs 
   }
   assert.deepEqual(recentSummary(result, recentSongs(result, normalizeSong)), {
     returned: 3,
-    displayed: 2,
-    unique: 1,
+    displayed: 1,
     total: 100,
-    unavailable: 1,
   })
   const fourteen = {
     data: {
@@ -112,6 +108,6 @@ test('recent summary distinguishes server count, usable records, repeated songs 
   }
   assert.deepEqual(
     recentSummary(fourteen, recentSongs(fourteen, normalizeSong)),
-    { returned: 14, displayed: 14, unique: 14, total: null, unavailable: 0 },
+    { returned: 14, displayed: 14, total: null },
   )
 })

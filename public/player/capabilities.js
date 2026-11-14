@@ -3,7 +3,8 @@
   const V = typeof module !== 'undefined' && module.exports ? require('./visual-core') : root.SonoraVisual
   function mount({ api, toast, onOpen, onSongs, onPlaySongs, onDownload, onAccountChange, getProfile, openAccount, getCurrent, pauseAudio }) {
     const $=id=>document.getElementById(id)
-    let catalog, currentSection='home', currentRoute='', context={}, run=0, currentList=[], currentListKind='', lastCollection=null, offset=0, modalJob=null, pickJob=null, activeMedia, recentSongs=[], resumeRecent=false
+    let catalog, currentSection='home', currentRoute='', context={}, run=0, currentList=[], currentListKind='', lastCollection=null, offset=0, modalJob=null, pickJob=null, activeMedia, recentSongs=[], resumeRecent=false, recentAuto=true, recentPending=0, recentNextSync=0, recentLoginExpired=false
+    try{recentAuto=localStorage.getItem('sonora-recent-auto')!=='off'}catch{ /* optional */ }
     const likes=new Set()
     const sections=[['home','音乐广场','✳'],['recent','最近播放','◷'],['playlists','我的歌单','▤'],['cloud','我的云盘','☁'],['artists','歌手与专辑','♬'],['videos','视频与 MV','▷'],['radio','播客电台','◉'],['comments','音乐评论','☷'],['messages','消息与关注','✉'],['profile','我的账号','◌'],['services','更多音乐服务','✦']]
     const shortcuts=[['排行榜','听见此刻最热门的声音','/toplist'],['热门歌单','从一个主题，发现一段旋律','/top/playlist'],['新歌速递','让新鲜的好声音先到耳边','/personalized/newsong'],['推荐新碟','听一张完整的专辑','/album/newest'],['热门歌手','寻找你喜欢的声音','/top/artists'],['最新 MV','让音乐有画面','/mv/first'],['推荐播客','听见有趣的另一种生活','/dj/recommend'],['每日推荐','为你的口味而来','/recommend/songs']]
@@ -45,24 +46,27 @@
       }catch(error){status(error.message);toast(error.message)}
     }
     const sectionNav=$('visual-navigation');sections.forEach(([id,title,icon])=>{const b=button('',()=>openSection(id),'music-section-tab');b.dataset.musicSection=id;b.append(el('span',icon),el('span',title));sectionNav.append(b)})
-    async function recentPage(){
-      recentSongs=[];currentList=[];currentListKind='/record/recent/song'
+    async function recentPage(background=false){
+      if(!background){recentSongs=[];currentList=[];recentLoginExpired=false;}currentListKind='/record/recent/song'
       const playAll=button('播放全部',()=>{if(recentSongs.length)onPlaySongs(recentSongs,0)},'primary-button')
       const refresh=button('刷新记录',()=>openSection('recent'))
       playAll.disabled=true
-      header('网易云最近播放','来自当前网易云账号 · 每次最多请求 100 条播放记录',[playAll,refresh])
-      const container=$('visual-results');container.replaceChildren();$('visual-more').hidden=true
+      const auto=button(recentAuto?'自动同步 · 开':'自动同步 · 关',()=>{recentAuto=!recentAuto;auto.textContent=recentAuto?'自动同步 · 开':'自动同步 · 关';recentNextSync=Date.now()+30000;try{localStorage.setItem('sonora-recent-auto',recentAuto?'on':'off')}catch{ /* optional */ }})
+      auto.title='每 30 秒重新读取云端记录；也可关闭后手动刷新'
+      if(!background)header('网易云最近播放','来自当前网易云账号 · 每次最多请求 100 条记录，自动同步间隔 30 秒',[playAll,refresh,auto])
+      const container=$('visual-results');if(!background)container.replaceChildren();$('visual-more').hidden=true
       const profile=getProfile()
       if(!profile){resumeRecent=true;status('登录网易云账号后，查看你的最近播放记录。');container.append(button('登录网易云',()=>openAccount(),'primary-button'));openAccount();return}
       const accountId=String(profile.userId),generation=++run
-      status('正在读取网易云最近播放…');refresh.disabled=true
+      if(!background)status('正在读取网易云最近播放…');refresh.disabled=true;recentPending++;recentNextSync=Date.now()+30000
       try{
         const result=await request('/record/recent/song',{limit:100})
         if(generation!==run||currentSection!=='recent'||String(getProfile()?.userId)!==accountId)return
         recentSongs=V.recentSongs(result,PlayerCore.normalizeSong);currentList=recentSongs
         const summary=V.recentSummary(result,recentSongs)
-        const countText=`网易云本次返回 ${summary.returned} 条记录 · 可显示 ${summary.displayed} 条（${summary.unique} 首不同歌曲）${summary.total!==null?` · 云端总数 ${summary.total} 条`:''}${summary.unavailable?` · ${summary.unavailable} 条缺少歌曲信息`:''}`
-        $('visual-subtitle').textContent=countText
+        const synced=new Intl.DateTimeFormat('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date())
+        const countText=`网易云本次返回 ${summary.returned} 条记录 · 显示 ${summary.displayed} 首歌曲${summary.total!==null?` · 云端总数 ${summary.total} 条`:''} · 已同步 ${synced}`
+        header('网易云最近播放',countText,[playAll,refresh,auto]);container.replaceChildren()
         if(!recentSongs.length){container.append(el('div','网易云暂时没有返回最近播放记录。听过一些歌曲后，可以点击刷新。','visual-empty'));status('');return}
         const list=el('div',null,'recent-song-list'),heading=el('div',null,'recent-song-heading')
         for(const text of ['#','歌曲 / 歌手','专辑','播放时间','时长','操作'])heading.append(el('span',text))
@@ -82,14 +86,21 @@
           row.append(el('span',String(index+1).padStart(2,'0'),'recent-song-index'),main,album,date,el('span',PlayerCore.formatTime(song.duration),'recent-song-duration'),actions);list.append(row)
         })
         container.append(list);playAll.disabled=false
-        status(`${countText}。保留重复播放记录；点击歌曲可再次播放，刷新可重新同步云端。`)
+        status(`${countText}。同一首歌只显示最近一次。${recentAuto?'停留此页时每 30 秒自动同步。':'可点击刷新重新同步云端。'}`)
       }catch(error){
         if(generation!==run||currentSection!=='recent')return
-        if(error.code===301||error.code===401){resumeRecent=true;status('网易云登录已失效，请重新登录后刷新。');container.append(button('重新登录网易云',()=>openAccount(),'primary-button'))}
+        if(error.code===301||error.code===401){recentLoginExpired=true;resumeRecent=true;status('网易云登录已失效，请重新登录后刷新。');container.append(button('重新登录网易云',()=>openAccount(),'primary-button'))}
+        else if(background)status(`自动同步暂未完成，已保留当前列表。${error.message||'请稍后刷新。'}`)
         else{status(error.message||'最近播放暂时读取失败，请稍后刷新。');container.append(button('重新读取',()=>openSection('recent')))}
-      }finally{if(generation===run)refresh.disabled=false}
+      }finally{recentPending--;if(generation===run)refresh.disabled=false}
     }
+    function canSyncRecent(){return recentAuto&&!recentLoginExpired&&currentSection==='recent'&&currentRoute===''&&!$('capability-center').hidden&&!document.hidden&&getProfile()&&!recentPending}
+    let recentTimer=setInterval(()=>{if(canSyncRecent()&&Date.now()>=recentNextSync)recentPage(true)},5000)
+    document.addEventListener('visibilitychange',()=>{if(canSyncRecent())recentPage(true)})
+    window.addEventListener('pagehide',()=>clearInterval(recentTimer))
+    window.addEventListener('pageshow',event=>{if(event.persisted){clearInterval(recentTimer);recentNextSync=Date.now()+30000;recentTimer=setInterval(()=>{if(canSyncRecent()&&Date.now()>=recentNextSync)recentPage(true)},5000)}})
     function accountChanged(){
+      recentLoginExpired=false
       if(currentSection!=='recent')return
       ++run;recentSongs=[];currentList=[];$('visual-results').replaceChildren()
       if(!$('capability-center').hidden){

@@ -99,7 +99,7 @@
   function recentSongs(result,normalizeSong){
     const list=result?.data?.list||result?.list||[]
     if(!Array.isArray(list))return[]
-    const songs=[]
+    const unique=new Map()
     for(const record of list){
       if(!record||typeof record!=='object')continue
       const raw=record.data?.song||record.data||record.song||record.resource
@@ -111,14 +111,15 @@
       if(playedAt>0&&playedAt<100000000000)playedAt*=1000
       if(playedAt<0||playedAt>8640000000000000)playedAt=0
       const song={...normalizeSong({...raw,id,name}),playedAt}
-      songs.push(song)
+      const previous=unique.get(song.id)
+      if(!previous||song.playedAt>previous.playedAt)unique.set(song.id,song)
     }
-    return songs.sort((a,b)=>b.playedAt-a.playedAt)
+    return [...unique.values()].sort((a,b)=>b.playedAt-a.playedAt)
   }
   function recentSummary(result,songs){
     const list=result?.data?.list||result?.list||[],returned=Array.isArray(list)?list.length:0
     const count=result?.data?.total??result?.total,total=Number.isInteger(Number(count))&&count!==null&&count!==undefined&&Number(count)>=0?Number(count):null
-    return {returned,displayed:songs.length,unique:new Set(songs.map(song=>song.id)).size,total,unavailable:Math.max(0,returned-songs.length)}
+    return {returned,displayed:songs.length,total}
   }
   function recentTime(time,timeZone){
     if(!Number.isFinite(time)||time<=0)return '未提供播放时间'
